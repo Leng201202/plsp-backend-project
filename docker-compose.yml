@@ -1,0 +1,42 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pslp-backend-app
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  db:
+    image:  mysql:8.0
+    container_name: plsp_db
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=20122002
+      - MYSQL_DATABASE=plsp_db
+      - MYSQL_USER=plsp_user
+      - MYSQL_PASSWORD=plsp_password
+    volumes:
+      - plsp_db_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: pslp_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - plsp_redis_data:/data
+
+volumes:
+    plsp_db_data:
