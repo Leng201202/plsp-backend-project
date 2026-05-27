@@ -4,7 +4,7 @@ import { IsNull } from 'typeorm';
 
 import { EmployeeService } from '../../src/modules/employee/employee.service';
 import { Employee } from '../../src/modules/employee/entity/employee.entity';
-import { EmployeeNotFoundException } from '../../src/common/exceptions/employee-not-found.exception';
+import { EmployeeNotFoundException } from '../../src/common/exceptions/employee.exception';
 
 describe('EmployeeService', () => {
   let service: EmployeeService;

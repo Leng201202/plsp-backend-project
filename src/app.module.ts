@@ -4,6 +4,16 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { QuestionnaireModule } from './modules/questionnaire/questionnaire.module';
+import { QuestionModule } from './modules/question/question.module';
+import { StatusModule } from './modules/status/status.module';
+import { CategoryModule } from './modules/category/category.module';
+import { SeedService } from './database/seed.service';
+import { Employee } from './modules/employee/entity/employee.entity';
+import { Status } from './modules/status/entity/status.entity';
+import { Category } from './modules/category/entity/category.entity';
+import { Questionnaire } from './modules/questionnaire/entity/questionnaire.entity';
+import { Question } from './modules/question/entity/question.entity';
 
 @Module({
   imports: [
@@ -11,9 +21,21 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
       isGlobal: true,
     }),
     TypeOrmModule.forRoot(typeOrmConfig),
-    EmployeeModule
+    TypeOrmModule.forFeature([
+      Employee,
+      Status,
+      Category,
+      Questionnaire,
+      Question,
+    ]),
+    EmployeeModule,
+    QuestionnaireModule,
+    QuestionModule,
+    StatusModule,
+    CategoryModule,
   ],
   providers: [
+    SeedService,
     {
       provide: 'APP_INTERCEPTOR',
       useClass: LoggingInterceptor,

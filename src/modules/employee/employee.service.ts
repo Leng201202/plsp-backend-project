@@ -6,7 +6,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { plainToInstance } from 'class-transformer';
 import { EmployeeResponseDto } from './dto/response-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
-import { EmployeeNotFoundException } from '../../common/exceptions/employee-not-found.exception';
+import { EmployeeNotFoundException } from '../../common/exceptions/employee.exception';
 
 @Injectable()
 export class EmployeeService {
@@ -20,7 +20,8 @@ export class EmployeeService {
             EmployeeResponseDto,
             await this.employeeRepository.save(
                 this.employeeRepository.create(dto)
-            ));
+            )
+        );
     }
     async findAll(){
         return plainToInstance(

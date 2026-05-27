@@ -13,15 +13,15 @@ export class Status {
     @Column({ name: 'description', type: 'text', nullable: true })
     description?: string;
 
-    @Column({ name: 'created_by'})
     @ManyToOne(()=> Employee)
     @JoinColumn({ name: 'created_by' })
-    createdBy?: Employee;
+    created_by?: Employee;
 
     @CreateDateColumn({ name:'created_at' })
     created_at?: Date;
 
-    @Column({ name: 'updated_by', nullable: true })
+    @ManyToOne(()=> Employee, { nullable: true })
+    @JoinColumn({ name: 'updated_by' })
     updated_by?: Employee;
 
     @UpdateDateColumn({ name: 'updated_at', nullable: true })
