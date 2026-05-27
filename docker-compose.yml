@@ -40,3 +40,5 @@ services:
 
 volumes:
     plsp_db_data:
+    plsp_redis_data:
+
