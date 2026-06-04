@@ -109,7 +109,9 @@ describe('StatusService', () => {
   it('should throw StatusNotFoundException when status not found (or soft-deleted)', async () => {
     mockStatusRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('status-uuid-1')).rejects.toThrow(StatusNotFoundException);
+    await expect(service.findOne('status-uuid-1')).rejects.toThrow(
+      StatusNotFoundException,
+    );
   });
 
   it('should update status', async () => {
@@ -125,7 +127,9 @@ describe('StatusService', () => {
     expect(mockStatusRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'status-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockStatusRepository.merge).toHaveBeenCalledWith(statusMock, { name: 'Updated status' });
+    expect(mockStatusRepository.merge).toHaveBeenCalledWith(statusMock, {
+      name: 'Updated status',
+    });
     expect(mockStatusRepository.save).toHaveBeenCalledWith(updatedStatus);
     expect(result).toMatchObject({ id: statusMock.id, name: 'Updated status' });
   });
@@ -133,7 +137,9 @@ describe('StatusService', () => {
   it('should throw StatusNotFoundException when updating missing/soft-deleted status', async () => {
     mockStatusRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update('status-uuid-1', { name: 'test' })).rejects.toThrow(StatusNotFoundException);
+    await expect(
+      service.update('status-uuid-1', { name: 'test' }),
+    ).rejects.toThrow(StatusNotFoundException);
   });
 
   it('should soft-delete status', async () => {
@@ -145,7 +151,9 @@ describe('StatusService', () => {
     expect(mockStatusRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'status-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockStatusRepository.softDelete).toHaveBeenCalledWith('status-uuid-1');
+    expect(mockStatusRepository.softDelete).toHaveBeenCalledWith(
+      'status-uuid-1',
+    );
     expect(result).toEqual({
       message: 'Status deleted successfully',
       success: true,
@@ -155,6 +163,8 @@ describe('StatusService', () => {
   it('should throw StatusNotFoundException when deleting missing/soft-deleted status', async () => {
     mockStatusRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('status-uuid-1')).rejects.toThrow(StatusNotFoundException);
+    await expect(service.delete('status-uuid-1')).rejects.toThrow(
+      StatusNotFoundException,
+    );
   });
 });

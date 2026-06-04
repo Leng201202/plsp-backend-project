@@ -75,7 +75,9 @@ describe('QuestionnaireService', () => {
       created_by: { id: dto.created_by },
       updated_by: { id: dto.updated_by },
     });
-    expect(mockQuestionnaireRepository.save).toHaveBeenCalledWith(questionnaireMock);
+    expect(mockQuestionnaireRepository.save).toHaveBeenCalledWith(
+      questionnaireMock,
+    );
     expect(result).toMatchObject({
       id: questionnaireMock.id,
       title: questionnaireMock.title,
@@ -122,12 +124,17 @@ describe('QuestionnaireService', () => {
   it('should throw QuestionnaireNotFoundException when questionnaire not found (or soft-deleted)', async () => {
     mockQuestionnaireRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('questionnaire-uuid-1')).rejects.toThrow(QuestionnaireNotFoundException);
+    await expect(service.findOne('questionnaire-uuid-1')).rejects.toThrow(
+      QuestionnaireNotFoundException,
+    );
   });
 
   it('should update questionnaire', async () => {
     const dto = { title: 'Updated Questionnaire' };
-    const updatedQuestionnaire = { ...questionnaireMock, title: 'Updated Questionnaire' };
+    const updatedQuestionnaire = {
+      ...questionnaireMock,
+      title: 'Updated Questionnaire',
+    };
 
     mockQuestionnaireRepository.findOne.mockResolvedValue(questionnaireMock);
     mockQuestionnaireRepository.merge.mockReturnValue(updatedQuestionnaire);
@@ -138,15 +145,25 @@ describe('QuestionnaireService', () => {
     expect(mockQuestionnaireRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'questionnaire-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockQuestionnaireRepository.merge).toHaveBeenCalledWith(questionnaireMock, { title: 'Updated Questionnaire' });
-    expect(mockQuestionnaireRepository.save).toHaveBeenCalledWith(updatedQuestionnaire);
-    expect(result).toMatchObject({ id: questionnaireMock.id, title: 'Updated Questionnaire' });
+    expect(mockQuestionnaireRepository.merge).toHaveBeenCalledWith(
+      questionnaireMock,
+      { title: 'Updated Questionnaire' },
+    );
+    expect(mockQuestionnaireRepository.save).toHaveBeenCalledWith(
+      updatedQuestionnaire,
+    );
+    expect(result).toMatchObject({
+      id: questionnaireMock.id,
+      title: 'Updated Questionnaire',
+    });
   });
 
   it('should throw QuestionnaireNotFoundException when updating missing/soft-deleted questionnaire', async () => {
     mockQuestionnaireRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update('questionnaire-uuid-1', { title: 'test' })).rejects.toThrow(QuestionnaireNotFoundException);
+    await expect(
+      service.update('questionnaire-uuid-1', { title: 'test' }),
+    ).rejects.toThrow(QuestionnaireNotFoundException);
   });
 
   it('should soft-delete questionnaire', async () => {
@@ -158,7 +175,9 @@ describe('QuestionnaireService', () => {
     expect(mockQuestionnaireRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'questionnaire-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockQuestionnaireRepository.softDelete).toHaveBeenCalledWith('questionnaire-uuid-1');
+    expect(mockQuestionnaireRepository.softDelete).toHaveBeenCalledWith(
+      'questionnaire-uuid-1',
+    );
     expect(result).toEqual({
       message: 'Questionnaire deleted successfully',
       success: true,
@@ -168,6 +187,8 @@ describe('QuestionnaireService', () => {
   it('should throw QuestionnaireNotFoundException when deleting missing/soft-deleted questionnaire', async () => {
     mockQuestionnaireRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('questionnaire-uuid-1')).rejects.toThrow(QuestionnaireNotFoundException);
+    await expect(service.delete('questionnaire-uuid-1')).rejects.toThrow(
+      QuestionnaireNotFoundException,
+    );
   });
 });

@@ -66,7 +66,10 @@ describe('CategoryController', () => {
   });
 
   it('should remove category', async () => {
-    const response = { success: true, message: 'Category deleted successfully' };
+    const response = {
+      success: true,
+      message: 'Category deleted successfully',
+    };
     mockCategoryService.delete.mockResolvedValue(response);
 
     expect(await controller.remove('uuid-1')).toEqual(response);

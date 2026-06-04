@@ -70,8 +70,9 @@ export class QuestionService {
       throw new QuestionNotFoundException();
     }
 
-    const { questionnaire_id, category_id, created_by, updated_by, ...rest } = dto;
-    
+    const { questionnaire_id, category_id, created_by, updated_by, ...rest } =
+      dto;
+
     // Convert IDs to objects for TypeORM relations
     const updateData: any = { ...rest };
     if (questionnaire_id) updateData.questionnaire = { id: questionnaire_id };

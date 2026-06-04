@@ -39,7 +39,7 @@ import { Question } from './modules/question/entity/question.entity';
     {
       provide: 'APP_INTERCEPTOR',
       useClass: LoggingInterceptor,
-    }
+    },
   ],
 })
 export class AppModule {}

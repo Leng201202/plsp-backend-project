@@ -122,12 +122,17 @@ describe('QuestionService', () => {
   it('should throw QuestionNotFoundException when question not found (or soft-deleted)', async () => {
     mockQuestionRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('question-uuid-1')).rejects.toThrow(QuestionNotFoundException);
+    await expect(service.findOne('question-uuid-1')).rejects.toThrow(
+      QuestionNotFoundException,
+    );
   });
 
   it('should update question', async () => {
     const dto = { question_text: 'Updated question text' };
-    const updatedQuestion = { ...questionMock, question_text: 'Updated question text' };
+    const updatedQuestion = {
+      ...questionMock,
+      question_text: 'Updated question text',
+    };
 
     mockQuestionRepository.findOne.mockResolvedValue(questionMock);
     mockQuestionRepository.merge.mockReturnValue(updatedQuestion);
@@ -138,15 +143,22 @@ describe('QuestionService', () => {
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'question-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockQuestionRepository.merge).toHaveBeenCalledWith(questionMock, { question_text: 'Updated question text' });
+    expect(mockQuestionRepository.merge).toHaveBeenCalledWith(questionMock, {
+      question_text: 'Updated question text',
+    });
     expect(mockQuestionRepository.save).toHaveBeenCalledWith(updatedQuestion);
-    expect(result).toMatchObject({ id: questionMock.id, question_text: 'Updated question text' });
+    expect(result).toMatchObject({
+      id: questionMock.id,
+      question_text: 'Updated question text',
+    });
   });
 
   it('should throw QuestionNotFoundException when updating missing/soft-deleted question', async () => {
     mockQuestionRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update('question-uuid-1', { question_text: 'test' })).rejects.toThrow(QuestionNotFoundException);
+    await expect(
+      service.update('question-uuid-1', { question_text: 'test' }),
+    ).rejects.toThrow(QuestionNotFoundException);
   });
 
   it('should soft-delete question', async () => {
@@ -158,7 +170,9 @@ describe('QuestionService', () => {
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'question-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockQuestionRepository.softDelete).toHaveBeenCalledWith('question-uuid-1');
+    expect(mockQuestionRepository.softDelete).toHaveBeenCalledWith(
+      'question-uuid-1',
+    );
     expect(result).toEqual({
       message: 'Question deleted successfully',
       success: true,
@@ -168,6 +182,8 @@ describe('QuestionService', () => {
   it('should throw QuestionNotFoundException when deleting missing/soft-deleted question', async () => {
     mockQuestionRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('question-uuid-1')).rejects.toThrow(QuestionNotFoundException);
+    await expect(service.delete('question-uuid-1')).rejects.toThrow(
+      QuestionNotFoundException,
+    );
   });
 });

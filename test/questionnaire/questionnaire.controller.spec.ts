@@ -66,7 +66,10 @@ describe('QuestionnaireController', () => {
   });
 
   it('should remove questionnaire', async () => {
-    const response = { success: true, message: 'Questionnaire deleted successfully' };
+    const response = {
+      success: true,
+      message: 'Questionnaire deleted successfully',
+    };
     mockQuestionnaireService.delete.mockResolvedValue(response);
 
     expect(await controller.delete('uuid-1')).toEqual(response);

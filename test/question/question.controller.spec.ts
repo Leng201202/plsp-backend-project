@@ -34,7 +34,11 @@ describe('QuestionController', () => {
   });
 
   it('should create question', async () => {
-    const dto: any = { question_text: 'Text', questionnaire_id: 'q-1', category_id: 'cat-1' };
+    const dto: any = {
+      question_text: 'Text',
+      questionnaire_id: 'q-1',
+      category_id: 'cat-1',
+    };
     mockQuestionService.create.mockResolvedValue(dto);
 
     expect(await controller.create(dto)).toEqual(dto);
@@ -66,7 +70,10 @@ describe('QuestionController', () => {
   });
 
   it('should remove question', async () => {
-    const response = { success: true, message: 'Question deleted successfully' };
+    const response = {
+      success: true,
+      message: 'Question deleted successfully',
+    };
     mockQuestionService.delete.mockResolvedValue(response);
 
     expect(await controller.remove('uuid-1')).toEqual(response);

@@ -72,9 +72,15 @@ export class SeedService implements OnApplicationBootstrap {
     let draftStatus, openStatus, closeStatus;
     if (statusCount > 0) {
       console.log('Seed: Statuses already exist. Skipping.');
-      draftStatus = await this.statusRepository.findOne({ where: { name: 'draft' } });
-      openStatus = await this.statusRepository.findOne({ where: { name: 'open' } });
-      closeStatus = await this.statusRepository.findOne({ where: { name: 'close' } });
+      draftStatus = await this.statusRepository.findOne({
+        where: { name: 'draft' },
+      });
+      openStatus = await this.statusRepository.findOne({
+        where: { name: 'open' },
+      });
+      closeStatus = await this.statusRepository.findOne({
+        where: { name: 'close' },
+      });
     } else {
       const statuses = [
         { name: 'draft', description: 'Draft stage', createdBy: admin },
@@ -96,10 +102,26 @@ export class SeedService implements OnApplicationBootstrap {
       categories = await this.categoryRepository.find();
     } else {
       const catData = [
-        { name: 'General', description: 'General questions', created_by: admin },
-        { name: 'Education', description: 'Education related', created_by: admin },
-        { name: 'Technical', description: 'Technical skills', created_by: admin },
-        { name: 'Soft Skills', description: 'Soft skills and behavior', created_by: admin },
+        {
+          name: 'General',
+          description: 'General questions',
+          created_by: admin,
+        },
+        {
+          name: 'Education',
+          description: 'Education related',
+          created_by: admin,
+        },
+        {
+          name: 'Technical',
+          description: 'Technical skills',
+          created_by: admin,
+        },
+        {
+          name: 'Soft Skills',
+          description: 'Soft skills and behavior',
+          created_by: admin,
+        },
       ];
       categories = await this.categoryRepository.save(catData as any);
       console.log('Seed: Categories created.');
@@ -130,7 +152,9 @@ export class SeedService implements OnApplicationBootstrap {
           created_by: admin,
         },
       ];
-      questionnaires = await this.questionnaireRepository.save(qnareData as any);
+      questionnaires = await this.questionnaireRepository.save(
+        qnareData as any,
+      );
       console.log('Seed: Questionnaires created.');
     }
 

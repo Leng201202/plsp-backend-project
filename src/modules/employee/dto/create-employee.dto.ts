@@ -9,7 +9,6 @@ import {
 } from 'class-validator';
 
 export class CreateEmployeeDto {
-
   @IsUUID()
   employee_uuid!: string;
 

@@ -1,9 +1,8 @@
-
 import { Transform } from 'class-transformer';
 
 export class QuestionnaireResponseDto {
   id!: string;
-  
+
   title!: string;
 
   description?: string;
@@ -23,5 +22,5 @@ export class QuestionnaireResponseDto {
   @Transform(({ value }) => value?.id)
   updated_by?: any;
 
-  updated_at?: Date; 
+  updated_at?: Date;
 }

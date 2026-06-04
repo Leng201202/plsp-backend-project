@@ -131,7 +131,9 @@ describe('EmployeeService', () => {
   it('should throw EmployeeNotFoundException when updating missing employee', async () => {
     mockEmployeeRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update(1, {} as any)).rejects.toThrow(EmployeeNotFoundException);
+    await expect(service.update(1, {} as any)).rejects.toThrow(
+      EmployeeNotFoundException,
+    );
   });
 
   it('should soft delete employee', async () => {

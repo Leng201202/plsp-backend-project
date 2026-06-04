@@ -109,7 +109,9 @@ describe('CategoryService', () => {
   it('should throw CategoryNotFoundException when category not found (or soft-deleted)', async () => {
     mockCategoryRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.findOne('category-uuid-1')).rejects.toThrow(CategoryNotFoundException);
+    await expect(service.findOne('category-uuid-1')).rejects.toThrow(
+      CategoryNotFoundException,
+    );
   });
 
   it('should update category', async () => {
@@ -125,15 +127,22 @@ describe('CategoryService', () => {
     expect(mockCategoryRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'category-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockCategoryRepository.merge).toHaveBeenCalledWith(categoryMock, { name: 'Updated category' });
+    expect(mockCategoryRepository.merge).toHaveBeenCalledWith(categoryMock, {
+      name: 'Updated category',
+    });
     expect(mockCategoryRepository.save).toHaveBeenCalledWith(updatedCategory);
-    expect(result).toMatchObject({ id: categoryMock.id, name: 'Updated category' });
+    expect(result).toMatchObject({
+      id: categoryMock.id,
+      name: 'Updated category',
+    });
   });
 
   it('should throw CategoryNotFoundException when updating missing/soft-deleted category', async () => {
     mockCategoryRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update('category-uuid-1', { name: 'test' })).rejects.toThrow(CategoryNotFoundException);
+    await expect(
+      service.update('category-uuid-1', { name: 'test' }),
+    ).rejects.toThrow(CategoryNotFoundException);
   });
 
   it('should soft-delete category', async () => {
@@ -145,7 +154,9 @@ describe('CategoryService', () => {
     expect(mockCategoryRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'category-uuid-1', deleted_at: IsNull() },
     });
-    expect(mockCategoryRepository.softDelete).toHaveBeenCalledWith('category-uuid-1');
+    expect(mockCategoryRepository.softDelete).toHaveBeenCalledWith(
+      'category-uuid-1',
+    );
     expect(result).toEqual({
       message: 'Category deleted successfully',
       success: true,
@@ -155,6 +166,8 @@ describe('CategoryService', () => {
   it('should throw CategoryNotFoundException when deleting missing/soft-deleted category', async () => {
     mockCategoryRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('category-uuid-1')).rejects.toThrow(CategoryNotFoundException);
+    await expect(service.delete('category-uuid-1')).rejects.toThrow(
+      CategoryNotFoundException,
+    );
   });
 });
