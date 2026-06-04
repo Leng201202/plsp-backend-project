@@ -1,6 +1,6 @@
 import { Employee } from "src/modules/employee/entity/employee.entity";
 import { Question } from "src/modules/question/entity/question.entity";
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 
 @Entity('category')
@@ -27,4 +27,11 @@ export class Category {
 
     @UpdateDateColumn({type: 'datetime',nullable: true})
     updated_at?: Date;
+
+    @DeleteDateColumn()
+    deleted_at?: Date;
+
+    @ManyToOne(() => Employee)
+    @JoinColumn({ name: 'deleted_by' })
+    deleted_by?: Employee;
 }

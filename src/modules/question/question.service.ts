@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Question } from './entity/question.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateQuestionDto } from './dto/create.question.dto';
 import { plainToInstance } from 'class-transformer';
 import { QuestionResponseDto } from './dto/response-question.dto';
@@ -33,6 +33,9 @@ export class QuestionService {
     return plainToInstance(
       QuestionResponseDto,
       await this.questionRepository.find({
+        where: {
+          deleted_at: IsNull(),
+        },
         relations: {
           questionnaire: true,
           category: true,
@@ -45,7 +48,7 @@ export class QuestionService {
 
   async findOne(id: string) {
     const question = await this.questionRepository.findOne({
-      where: { id },
+      where: { id, deleted_at: IsNull() },
       relations: {
         questionnaire: true,
         category: true,
@@ -60,7 +63,9 @@ export class QuestionService {
   }
 
   async update(id: string, dto: UpdateQuestionDto) {
-    const question = await this.questionRepository.findOne({ where: { id } });
+    const question = await this.questionRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!question) {
       throw new QuestionNotFoundException();
     }
@@ -82,11 +87,13 @@ export class QuestionService {
   }
 
   async delete(id: string) {
-    const question = await this.questionRepository.findOne({ where: { id } });
+    const question = await this.questionRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!question) {
       throw new QuestionNotFoundException();
     }
-    await this.questionRepository.remove(question);
+    await this.questionRepository.softDelete(id);
     return {
       message: 'Question deleted successfully',
       success: true,

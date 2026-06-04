@@ -1,5 +1,5 @@
 import { Employee } from "src/modules/employee/entity/employee.entity";
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('status')
 export class Status {
@@ -26,4 +26,11 @@ export class Status {
 
     @UpdateDateColumn({ name: 'updated_at', nullable: true })
     updated_at?: Date;
+
+    @DeleteDateColumn()
+    deleted_at?: Date;
+
+    @ManyToOne(() => Employee)
+    @JoinColumn({ name: 'deleted_by' })
+    deleted_by?: Employee;
 }

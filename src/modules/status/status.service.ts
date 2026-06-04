@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Status } from './entity/status.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateStatusDto } from './dto/create.status.dto';
 import { plainToInstance } from 'class-transformer';
 import { StatusResponseDto } from './dto/response-status.dto';
@@ -32,6 +32,9 @@ export class StatusService {
     return plainToInstance(
       StatusResponseDto,
       await this.statusRepository.find({
+        where: {
+          deleted_at: IsNull(),
+        },
         relations: {
           created_by: true,
           updated_by: true,
@@ -42,7 +45,7 @@ export class StatusService {
 
   async findOne(id: string) {
     const status = await this.statusRepository.findOne({
-      where: { id },
+      where: { id, deleted_at: IsNull() },
       relations: {
         created_by: true,
         updated_by: true,
@@ -55,14 +58,16 @@ export class StatusService {
   }
 
   async update(id: string, dto: UpdateStatusDto) {
-    const status = await this.statusRepository.findOne({ where: { id } });
+    const status = await this.statusRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!status) {
       throw new StatusNotFoundException();
     }
 
     const { created_by, updated_by, ...rest } = dto;
     const updateData: any = { ...rest };
-    if (created_by) updateData.createdBy = { id: created_by };
+    if (created_by) updateData.created_by = { id: created_by };
     if (updated_by) updateData.updated_by = { id: updated_by };
 
     const updatedStatus = this.statusRepository.merge(status, updateData);
@@ -73,11 +78,13 @@ export class StatusService {
   }
 
   async delete(id: string) {
-    const status = await this.statusRepository.findOne({ where: { id } });
+    const status = await this.statusRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!status) {
       throw new StatusNotFoundException();
     }
-    await this.statusRepository.remove(status);
+    await this.statusRepository.softDelete(id);
     return {
       message: 'Status deleted successfully',
       success: true,

@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Questionnaire } from './entity/questionnaire.entity';
-import { Repository } from 'typeorm';
-import { CreateQuestionDto } from '../question/dto/create.question.dto';
+import { IsNull, Repository } from 'typeorm';
 import { CreateQuestionnaireDto } from './dto/create.questionnaire.dto';
 import { plainToInstance } from 'class-transformer';
 import { QuestionnaireResponseDto } from './dto/response-questionnaire.dto';
@@ -37,6 +36,9 @@ export class QuestionnaireService {
             QuestionnaireResponseDto,
             await this.questionnaireRepository.find(
                 {
+                    where: {
+                        deleted_at: IsNull(),
+                    },
                     relations: {
                         status: true,
                         created_by: true,
@@ -54,6 +56,7 @@ export class QuestionnaireService {
         const questionnaire = await this.questionnaireRepository.findOne({
             where: {
                 id,
+                deleted_at: IsNull(),
             },
             relations: {
                 status: true,
@@ -73,6 +76,7 @@ export class QuestionnaireService {
         const questionnaire = await this.questionnaireRepository.findOne({
             where: {
                 id,
+                deleted_at: IsNull(),
             }
         });
         if (!questionnaire) throw new QuestionnaireNotFoundException();
@@ -92,10 +96,12 @@ export class QuestionnaireService {
             await this.questionnaireRepository.save(updatedQuestionnaire)
         );
     }
+
     async delete(id: string){
         const questionnaire = await this.questionnaireRepository.findOne({
             where: {
                 id,
+                deleted_at: IsNull(),
             }
         });
         if (!questionnaire) throw new QuestionnaireNotFoundException();

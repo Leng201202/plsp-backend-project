@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entity/category.entity';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create.category.dto';
 import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/response-category.dto';
@@ -32,6 +32,9 @@ export class CategoryService {
     return plainToInstance(
       CategoryResponseDto,
       await this.categoryRepository.find({
+        where: {
+          deleted_at: IsNull(),
+        },
         relations: {
           created_by: true,
           updated_by: true,
@@ -42,7 +45,7 @@ export class CategoryService {
 
   async findOne(id: string) {
     const category = await this.categoryRepository.findOne({
-      where: { id },
+      where: { id, deleted_at: IsNull() },
       relations: {
         created_by: true,
         updated_by: true,
@@ -55,7 +58,9 @@ export class CategoryService {
   }
 
   async update(id: string, dto: UpdateCategoryDto) {
-    const category = await this.categoryRepository.findOne({ where: { id } });
+    const category = await this.categoryRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!category) {
       throw new CategoryNotFoundException();
     }
@@ -73,11 +78,13 @@ export class CategoryService {
   }
 
   async delete(id: string) {
-    const category = await this.categoryRepository.findOne({ where: { id } });
+    const category = await this.categoryRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+    });
     if (!category) {
       throw new CategoryNotFoundException();
     }
-    await this.categoryRepository.remove(category);
+    await this.categoryRepository.softDelete(id);
     return {
       message: 'Category deleted successfully',
       success: true,
