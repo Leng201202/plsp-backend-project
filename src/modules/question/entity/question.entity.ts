@@ -1,3 +1,4 @@
+import { Answer } from 'src/modules/submission/entity/answer.entity';
 import { Category } from 'src/modules/category/entity/category.entity';
 import { Employee } from 'src/modules/employee/entity/employee.entity';
 import { Questionnaire } from 'src/modules/questionnaire/entity/questionnaire.entity';
@@ -8,6 +9,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -36,6 +38,9 @@ export class Question {
 
   @Column({ type: 'int', default: 1 })
   weight!: number;
+
+  @OneToMany(() => Answer, (answer) => answer.question)
+  answers!: Answer[];
 
   @ManyToOne(() => Employee)
   @JoinColumn({ name: 'created_by' })

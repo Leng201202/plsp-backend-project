@@ -10,6 +10,7 @@ import {
 import { StatusService } from './status.service';
 import { CreateStatusDto } from './dto/create.status.dto';
 import { UpdateStatusDto } from './dto/update.status.dto';
+import { getCurrentUser } from 'src/common/middleware/curr_user';
 
 @Controller('status')
 export class StatusController {
@@ -32,11 +33,11 @@ export class StatusController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateStatusDto: UpdateStatusDto) {
-    return this.statusService.update(id, updateStatusDto);
+    return this.statusService.update(id, updateStatusDto,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.statusService.delete(id);
+    return this.statusService.delete(id, getCurrentUser); // Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 }

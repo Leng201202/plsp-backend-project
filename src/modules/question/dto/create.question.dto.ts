@@ -29,7 +29,4 @@ export class CreateQuestionDto {
   @IsInt()
   created_by!: number;
 
-  @IsInt()
-  @IsOptional()
-  updated_by?: number;
 }

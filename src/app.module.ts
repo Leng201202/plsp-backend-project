@@ -14,6 +14,10 @@ import { Status } from './modules/status/entity/status.entity';
 import { Category } from './modules/category/entity/category.entity';
 import { Questionnaire } from './modules/questionnaire/entity/questionnaire.entity';
 import { Question } from './modules/question/entity/question.entity';
+import { SubmissionModule } from './modules/submission/submission.module';
+import { Submission } from './modules/submission/entity/submission.entity';
+import { Answer } from './modules/submission/entity/answer.entity';
+import { ClassificationRuleModule } from './modules/classification/classification-rule.module';
 
 @Module({
   imports: [
@@ -27,12 +31,16 @@ import { Question } from './modules/question/entity/question.entity';
       Category,
       Questionnaire,
       Question,
+      Submission,
+      Answer,
     ]),
     EmployeeModule,
     QuestionnaireModule,
     QuestionModule,
     StatusModule,
     CategoryModule,
+    SubmissionModule,
+    ClassificationRuleModule,
   ],
   providers: [
     SeedService,

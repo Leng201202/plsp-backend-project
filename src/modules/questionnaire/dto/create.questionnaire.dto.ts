@@ -3,8 +3,7 @@ import {
   IsInt,
   IsOptional,
   IsString,
-  IsUUID,
-  isUUID,
+  IsUUID
 } from 'class-validator';
 import { Status } from 'src/modules/status/entity/status.entity';
 

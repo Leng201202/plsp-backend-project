@@ -1,5 +1,6 @@
 import { Employee } from 'src/modules/employee/entity/employee.entity';
 import { Status } from 'src/modules/status/entity/status.entity';
+import { Submission } from 'src/modules/submission/entity/submission.entity';
 import {
   Column,
   CreateDateColumn,
@@ -7,6 +8,7 @@ import {
   Entity,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -31,6 +33,12 @@ export class Questionnaire {
 
   @Column({ type: 'timestamp', nullable: true })
   close_date?: Date;
+
+  @Column({type:'boolean',default:false})
+  is_allow_multi_submit?:boolean;
+
+  @OneToMany(() => Submission, (submission) => submission.questionnaire)
+  submissions!: Submission[];
 
   @ManyToOne(() => Employee)
   @JoinColumn({ name: 'created_by' })

@@ -13,7 +13,4 @@ export class CreateStatusDto {
   @IsOptional()
   created_by?: number;
 
-  @IsInt()
-  @IsOptional()
-  updated_by?: number;
 }

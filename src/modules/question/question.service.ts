@@ -7,6 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import { QuestionResponseDto } from './dto/response-question.dto';
 import { UpdateQuestionDto } from './dto/update.question.dto';
 import { QuestionNotFoundException } from 'src/common/exceptions/question.exception';
+import { Employee } from '../employee/entity/employee.entity';
 
 @Injectable()
 export class QuestionService {
@@ -62,7 +63,7 @@ export class QuestionService {
     return plainToInstance(QuestionResponseDto, question);
   }
 
-  async update(id: string, dto: UpdateQuestionDto) {
+  async update(id: string, dto: UpdateQuestionDto, updated_by: number) {
     const question = await this.questionRepository.findOne({
       where: { id, deleted_at: IsNull() },
     });
@@ -70,7 +71,7 @@ export class QuestionService {
       throw new QuestionNotFoundException();
     }
 
-    const { questionnaire_id, category_id, created_by, updated_by, ...rest } =
+    const { questionnaire_id, category_id, created_by, ...rest } =
       dto;
 
     // Convert IDs to objects for TypeORM relations
@@ -87,13 +88,15 @@ export class QuestionService {
     );
   }
 
-  async delete(id: string) {
+  async delete(id: string, deleted_by: number) {
     const question = await this.questionRepository.findOne({
       where: { id, deleted_at: IsNull() },
     });
     if (!question) {
       throw new QuestionNotFoundException();
     }
+    question.deleted_by = { id: deleted_by } as Employee;
+    await this.questionRepository.save(question);
     await this.questionRepository.softDelete(id);
     return {
       message: 'Question deleted successfully',

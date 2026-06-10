@@ -10,6 +10,7 @@ import {
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create.category.dto';
 import { UpdateCategoryDto } from './dto/update.category.dto';
+import { getCurrentUser } from 'src/common/middleware/curr_user';
 
 @Controller('category')
 export class CategoryController {
@@ -34,12 +35,13 @@ export class CategoryController {
   update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
+
   ) {
-    return this.categoryService.update(id, updateCategoryDto);
+    return this.categoryService.update(id, updateCategoryDto, getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.categoryService.delete(id);
+    return this.categoryService.delete(id, getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 }

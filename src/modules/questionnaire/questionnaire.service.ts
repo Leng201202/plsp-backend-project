@@ -7,6 +7,7 @@ import { plainToInstance } from 'class-transformer';
 import { QuestionnaireResponseDto } from './dto/response-questionnaire.dto';
 import { QuestionnaireNotFoundException } from 'src/common/exceptions/questionnaire.exception';
 import { UpdateQuestionnaireDto } from './dto/update.questionnaire.dto';
+import { Employee } from '../employee/entity/employee.entity';
 
 @Injectable()
 export class QuestionnaireService {
@@ -73,7 +74,7 @@ export class QuestionnaireService {
     return plainToInstance(QuestionnaireResponseDto, questionnaire);
   }
 
-  async update(id: string, dto: UpdateQuestionnaireDto) {
+  async update(id: string, dto: UpdateQuestionnaireDto, updated_by: number) {
     const questionnaire = await this.questionnaireRepository.findOne({
       where: {
         id,
@@ -86,8 +87,6 @@ export class QuestionnaireService {
       status_id,
       open_date,
       close_date,
-      created_by,
-      updated_by,
       ...rest
     } = dto;
     const updateData: any = { ...rest };
@@ -95,7 +94,6 @@ export class QuestionnaireService {
     if (status_id) updateData.status = { id: status_id };
     if (open_date) updateData.open_date = open_date;
     if (close_date) updateData.close_date = close_date;
-    if (created_by) updateData.created_by = { id: created_by };
     if (updated_by) updateData.updated_by = { id: updated_by };
 
     const updatedQuestionnaire = this.questionnaireRepository.merge(
@@ -108,7 +106,7 @@ export class QuestionnaireService {
     );
   }
 
-  async delete(id: string) {
+  async delete(id: string, deleted_by: number) {
     const questionnaire = await this.questionnaireRepository.findOne({
       where: {
         id,
@@ -116,6 +114,9 @@ export class QuestionnaireService {
       },
     });
     if (!questionnaire) throw new QuestionnaireNotFoundException();
+    questionnaire.deleted_by = { id: deleted_by } as Employee;
+
+    await this.questionnaireRepository.save(questionnaire);
     await this.questionnaireRepository.softDelete(id);
     return {
       message: 'Questionnaire deleted successfully',

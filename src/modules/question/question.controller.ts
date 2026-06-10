@@ -10,6 +10,7 @@ import {
 import { QuestionService } from './question.service';
 import { CreateQuestionDto } from './dto/create.question.dto';
 import { UpdateQuestionDto } from './dto/update.question.dto';
+import { getCurrentUser } from 'src/common/middleware/curr_user';
 
 @Controller('question')
 export class QuestionController {
@@ -35,11 +36,11 @@ export class QuestionController {
     @Param('id') id: string,
     @Body() updateQuestionDto: UpdateQuestionDto,
   ) {
-    return this.questionService.update(id, updateQuestionDto);
+    return this.questionService.update(id, updateQuestionDto,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.questionService.delete(id);
+    return this.questionService.delete(id,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 }
