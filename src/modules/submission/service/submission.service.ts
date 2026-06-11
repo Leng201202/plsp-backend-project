@@ -11,16 +11,19 @@ import { plainToInstance } from 'class-transformer';
 import { ResponseSubmissionDto } from '../dto/response-submission.dto';
 import { SubmissionNotFoundException } from 'src/common/exceptions/submission.exception';
 import { Employee } from 'src/modules/employee/entity/employee.entity';
+import { ResultService } from 'src/modules/result/result.service';
 
 @Injectable()
 export class SubmissionService {
   constructor(
     private readonly answerService: AnswerService,
+    private readonly resultService: ResultService,
     @InjectRepository(Submission)
     private readonly submissionRepository: Repository<Submission>,
 
     @InjectRepository(Questionnaire)
     private readonly questionnaireRepository: Repository<Questionnaire>,
+    
 
     private readonly dataSource: DataSource,
   ) {}
@@ -71,10 +74,16 @@ export class SubmissionService {
         dto.answers,
       );
 
+      const results=await this.resultService.calculate(
+        savedSubmission.id,
+        manager,
+      );
+
       return {
         success: true,
         message: 'Submission saved successfully',
         submission_id: savedSubmission.id,
+        results,
       };
     });
   }
@@ -126,7 +135,9 @@ export class SubmissionService {
     if (!submission) {
       throw new SubmissionNotFoundException();
     }
-    submission.deleted_by= {id: deleteBy} as Employee;
+    await this.submissionRepository.update(id, {
+      deleted_by: { id: deleteBy } as Employee,
+    });
     await this.submissionRepository.softDelete(id);
     return {
       success: true,
@@ -135,7 +146,7 @@ export class SubmissionService {
   }
 
   async findByQuestionnaire(questionnaireId: string) {
-    const questionnaire= this.submissionRepository.findOneBy({
+    const questionnaire= await this.questionnaireRepository.findOneBy({
         id: questionnaireId,
     })
     if(!questionnaire){

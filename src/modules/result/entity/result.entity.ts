@@ -6,12 +6,14 @@ import {
   JoinColumn,
   CreateDateColumn,
   DeleteDateColumn,
+  Unique,
 } from 'typeorm';
 import { Submission } from '../../submission/entity/submission.entity';
 import { Category } from '../../category/entity/category.entity';
 import { Employee } from '../../employee/entity/employee.entity';
 import { ClassificationRule } from '../../classification/entity/classification-rule.entity';
 @Entity('results')
+@Unique(['submission','category'])
 export class Result {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -32,7 +34,7 @@ export class Result {
 
   @ManyToOne(() => ClassificationRule, { nullable: true })
   @JoinColumn({ name: 'classification_rule_id' })
-  classification_rule_id?: ClassificationRule;
+  classificationRule?: ClassificationRule;
 
   @Column({ type: 'varchar', length: 20 })
   classification!: string;

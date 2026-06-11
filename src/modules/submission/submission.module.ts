@@ -6,8 +6,12 @@ import { Questionnaire } from '../questionnaire/entity/questionnaire.entity';
 import { SubmissionController } from './submission.controller';
 import { SubmissionService } from './service/submission.service';
 import { AnswerService } from './service/answer.service';
+import { ResultModule } from '../result/result.module';
 @Module({
-    imports: [TypeOrmModule.forFeature([Submission, Answer, Questionnaire])],
+    imports: [
+        TypeOrmModule.forFeature([Submission, Answer, Questionnaire]),
+        ResultModule,
+    ],
     controllers: [SubmissionController],
     providers: [SubmissionService, AnswerService],
 })
