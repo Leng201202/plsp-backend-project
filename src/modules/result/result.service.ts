@@ -1,16 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { Submission } from '../submission/entity/submission.entity';
-import { InjectRepository } from 'node_modules/@nestjs/typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
 import { Result } from './entity/result.entity';
-import { LessThanOrEqual, MoreThanOrEqual, Repository, EntityManager } from 'typeorm';
+import { LessThanOrEqual, MoreThanOrEqual, Repository, EntityManager, In } from 'typeorm';
 import { Answer } from '../submission/entity/answer.entity';
 import { ClassificationRule } from '../classification/entity/classification-rule.entity';
 import { SubmissionNotFoundException } from 'src/common/exceptions/submission.exception';
 import { AnswerNotFoundException } from 'src/common/exceptions/answer.exception';
 import { calculateCategoryScore } from './utils/result-calculation.util';
+import { ResultFilterDto, ResultSearchDto } from './dto/result-search.dto';
+import { ResultBulkActionDto, ResultSelectionMode } from './dto/result-bulk-action.dto';
+import { Employee } from '../employee/entity/employee.entity';
 
 @Injectable()
 export class ResultService {
+
     constructor(
         @InjectRepository(Result)
         private readonly resultRepository: Repository<Result>,
@@ -21,7 +25,128 @@ export class ResultService {
         @InjectRepository(ClassificationRule)
         private readonly classificationRuleRepository: Repository<ClassificationRule>,
     ) {} 
-    
+
+    //Result-Service for Result Controller
+
+    async search(dto: ResultSearchDto) {
+        const page=dto.pagination?.page??1;
+        const limit=dto.pagination?.limit??10;
+        const skip=(page-1)*limit;
+
+        const sortField=dto.sort?.field??'calculate_at';
+        const sortDirection=dto.sort?.order??'DESC';
+
+        const qb= this.createResultFilterQuery(dto.filter);
+        const [data,total]=await qb
+            .orderBy(`result.${sortField}`, sortDirection)
+            .skip(skip)
+            .take(limit)
+            .getManyAndCount();
+        return {
+            success: true,
+            total,
+            page,
+            limit,
+            data
+        };
+    }
+    // helper function for createResultFilterQuery in Search Method
+    private createResultFilterQuery(filter?: ResultFilterDto) {
+        const qb=this.resultRepository
+            .createQueryBuilder('result')
+            .leftJoinAndSelect('result.submission','submission')
+            .leftJoinAndSelect('submission.questionnaire','questionnaire')
+            .leftJoinAndSelect('result.category','category')
+            .leftJoinAndSelect('result.classificationRule','classificationRule');
+        
+        if(filter?.questionnaireId?.length){
+            qb.where('questionnaire.id IN (:...questionnaireIds)',{
+                questionnaireIds: filter.questionnaireId,
+            });
+        }
+        if(filter?.categoryId?.length){
+            qb.where('category.id IN (:...categoryIds)',{
+                categoryIds: filter.categoryId,
+            });
+        }
+        if(filter?.classificationId?.length){
+            qb.andWhere('classificationRule.id IN (:...classificationIds)',{
+                classificationIds: filter.classificationId,
+            });
+        }
+        if(filter?.startDate){
+            qb.andWhere('result.calculate_at >= :startDate',{
+                startDate: new Date(filter.startDate),
+            });
+        }
+        if(filter?.endDate){
+            qb.andWhere('result.calculate_at <= :endDate',{
+                endDate: new Date(filter.endDate),
+            });
+        }
+        return qb;
+    }
+
+
+    async deleteMany(dto: ResultBulkActionDto) {
+        const resultsIds= await this.resolveSelectedResultsIds(dto);
+        
+        if(!resultsIds.length){
+            throw new Error('No results to delete.');
+        }
+        if(dto.deletedBy){
+            await this.resultRepository.update(
+                {id: In(resultsIds)},
+                {
+                    deleted_by: {
+                        id: dto.deletedBy,
+                    }as Employee
+                }
+            );
+        }
+        await this.resultRepository.softDelete(resultsIds);
+        return {
+            success: true,
+            message: 'Results deleted successfully.',
+            deletedCount: resultsIds.length,
+        };
+    }
+
+    // helper function for deleteMany Method
+    // resolve the selected results ids from dto
+    private async resolveSelectedResultsIds(dto: ResultBulkActionDto): Promise<string[]> {
+        if(dto.mode===ResultSelectionMode.SELECTED){
+            return dto.resultIds??[];
+        }
+        const qb= this.createResultFilterQuery(dto.filter)
+            .select('result.id','id');
+        if(dto.excludeIds?.length){
+            qb.where('result.id NOT IN (:...excludeIds)',{
+                excludeIds: dto.excludeIds,
+            });
+        }
+        const rows= await qb.getRawMany<{id:string}>();
+        return rows.map((row)=>row.id);
+    }
+
+
+    async exportResult(dto: any) {
+        throw new Error('Method not implemented.');
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //Result-Calculation That use in Submission Service
     //calculate by submission 
     async calculate(submissionID: string, manager?: EntityManager):Promise<Result[]>{
         const submission=await this.findSubmission(submissionID, manager);

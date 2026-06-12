@@ -18,6 +18,9 @@ import { SubmissionModule } from './modules/submission/submission.module';
 import { Submission } from './modules/submission/entity/submission.entity';
 import { Answer } from './modules/submission/entity/answer.entity';
 import { ClassificationRuleModule } from './modules/classification/classification-rule.module';
+import { ClassificationRule } from './modules/classification/entity/classification-rule.entity';
+import { ResultModule } from './modules/result/result.module';
+import { Result } from './modules/result/entity/result.entity';
 
 @Module({
   imports: [
@@ -33,6 +36,8 @@ import { ClassificationRuleModule } from './modules/classification/classificatio
       Question,
       Submission,
       Answer,
+      ClassificationRule,
+      Result,
     ]),
     EmployeeModule,
     QuestionnaireModule,
@@ -41,6 +46,7 @@ import { ClassificationRuleModule } from './modules/classification/classificatio
     CategoryModule,
     SubmissionModule,
     ClassificationRuleModule,
+    ResultModule,
   ],
   providers: [
     SeedService,
