@@ -1,7 +1,9 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Res } from '@nestjs/common';
 import { ResultService } from './result.service';
 import { ResultSearchDto } from './dto/result-search.dto';
 import { ResultBulkActionDto } from './dto/result-bulk-action.dto';
+import { ResultExportDto } from './dto/result-export.dto';
+import type { Response } from 'express';
 
 @Controller('results')
 export class ResultController {
@@ -20,7 +22,16 @@ export class ResultController {
     }
 
     @Post('export')
-    exportResult(@Body() dto: any){
-        return this.resultService.exportResult(dto);
+    async exportResult(@Body() dto: ResultExportDto, @Res() res: Response){
+        const file=await this.resultService.exportResult(dto);
+        res.setHeader(
+            'Content-Type',
+            file.mimeType,
+        );
+        res.setHeader(
+            'Content-Disposition',
+            `attachment; filename="${file.fileName}"`,
+        );
+        res.send(file.file);
     }
 }

@@ -6,6 +6,11 @@ import { Answer } from '../submission/entity/answer.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ResultService } from './result.service';
 import { ResultController } from './result.controller';
+import { ResultExportService } from './export/result-export.service';
+import { CSVExporter } from './export/csv-exporter.service';
+import { ExcelResultExporterService } from './export/excel-exporter.service';
+import { PdfResultExporterService } from './export/pdf-exporter.service';
+import { ChartGeneratorService } from './export/chart-generator.service';
 
 @Module({
     imports: [TypeOrmModule.forFeature([
@@ -15,7 +20,14 @@ import { ResultController } from './result.controller';
         ClassificationRule,
     ])],
     controllers: [ResultController],
-    providers: [ResultService],
+    providers: [
+        ResultService,
+        ResultExportService,
+        CSVExporter,
+        ExcelResultExporterService,
+        PdfResultExporterService,
+        ChartGeneratorService,
+    ],
     exports: [ResultService],
 })
 export class ResultModule {}

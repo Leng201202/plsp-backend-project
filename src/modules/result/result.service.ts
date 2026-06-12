@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Body, Injectable, Res } from '@nestjs/common';
 import { Submission } from '../submission/entity/submission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Result } from './entity/result.entity';
@@ -11,11 +11,15 @@ import { calculateCategoryScore } from './utils/result-calculation.util';
 import { ResultFilterDto, ResultSearchDto } from './dto/result-search.dto';
 import { ResultBulkActionDto, ResultSelectionMode } from './dto/result-bulk-action.dto';
 import { Employee } from '../employee/entity/employee.entity';
+import { ResultExportDto, ResultExportMode } from './dto/result-export.dto';
+import { ResultExportService } from './export/result-export.service';
+import { ExportResultRow } from './export/interfaces/result-exporter.interface';
 
 @Injectable()
 export class ResultService {
 
     constructor(
+        private readonly resultExportService: ResultExportService,
         @InjectRepository(Result)
         private readonly resultRepository: Repository<Result>,
         @InjectRepository(Submission)
@@ -129,20 +133,61 @@ export class ResultService {
         return rows.map((row)=>row.id);
     }
 
+    async exportResult(dto: ResultExportDto) {
+       const rows=await this.resolveExportRows(dto);
 
-    async exportResult(dto: any) {
-        throw new Error('Method not implemented.');
+       return this.resultExportService.export(
+        dto.format,
+        rows,
+       )
     }
+    
+    private async resolveExportRows(
+        dto: ResultExportDto,
+        ): Promise<ExportResultRow[]> {
+        let results: Result[];
 
+        if (dto.mode === ResultExportMode.SELECTED) {
+            results = await this.resultRepository.find({
+            where: {
+                id: In(dto.resultIds ?? []),
+            },
+            relations: {
+                submission: {
+                questionnaire: true,
+                },
+                category: true,
+                classificationRule: true,
+            },
+            });
+        } else {
+            const qb = this.createResultFilterQuery(dto.filters);
 
+            if (dto.excludedIds?.length) {
+            qb.andWhere(
+                'result.id NOT IN (:...excludedIds)',
+                {
+                excludedIds: dto.excludedIds,
+                },
+            );
+            }
 
+            results = await qb.getMany();
+        }
 
-
-
-
-
-
-
+        return results.map((result) => ({
+            questionnaireTitle: result.submission.questionnaire.title,
+            submissionId: result.submission.id,
+            anonymousSessionId: result.submission.anonymousSessionId,
+            submittedAt: result.submission.submitted_at,
+            categoryName: result.category.name,
+            rawTotalScore: Number(result.rawTotalScore),
+            percentage: Number(result.percentage),
+            classification: result.classification,
+            calculatedAt: result.calculated_at,
+        }));
+    }
+    
 
 
 
