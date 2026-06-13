@@ -300,16 +300,14 @@ export class SeedService implements OnApplicationBootstrap {
       console.log('Seed: Submissions already exist. Skipping.');
       submissions = await this.submissionRepository.find();
     } else {
-      const submissionData = [
-        {
+      const submissionData = Array.from({ length: 15 }, (_, i) => {
+        const dateOffset = Math.floor(Math.random() * 10) * 24 * 60 * 60 * 1000;
+        return {
           questionnaire: questionnaires[0],
-          anonymousSessionId: 'session-001',
-        },
-        {
-          questionnaire: questionnaires[0],
-          anonymousSessionId: 'session-002',
-        },
-      ];
+          anonymousSessionId: `session-${String(i + 1).padStart(3, '0')}`,
+          submitted_at: new Date(Date.now() - dateOffset),
+        };
+      });
       submissions = await this.submissionRepository.save(submissionData as any);
       console.log('Seed: Submissions created.');
     }
@@ -353,12 +351,20 @@ export class SeedService implements OnApplicationBootstrap {
       const results: any[] = [];
       for (const submission of submissions) {
         for (const category of learningCategories) {
-          const classificationRule = await this.classificationRuleRepository.findOne({
-            where: { category: { id: category.id }, label: 'Major' },
-          });
-
           const rawTotalScore = Math.floor(Math.random() * 50) + 1;
           const percentage = (rawTotalScore / 50) * 100;
+
+          // Determine the correct classification label based on the score
+          let label = 'Negligible';
+          if (rawTotalScore >= 38) {
+            label = 'Major';
+          } else if (rawTotalScore >= 25) {
+            label = 'Minor';
+          }
+
+          const classificationRule = await this.classificationRuleRepository.findOne({
+            where: { category: { id: category.id }, label },
+          });
 
           results.push({
             submission: submission,

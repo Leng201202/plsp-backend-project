@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "node_modules/@nestjs/common";
+import { Injectable, BadRequestException } from "@nestjs/common";
 import { ResultExportFormat } from "../dto/result-export.dto";
 import { CSVExporter } from "./csv-exporter.service";
 import { ExcelResultExporterService } from "./excel-exporter.service";
