@@ -1,10 +1,11 @@
 import { BadRequestException } from "@nestjs/common";
 import { Repository, IsNull, Not } from 'typeorm';
 import { ClassificationRule } from "../entity/classification-rule.entity";
+import { ClassificationScoreOutOfRangeException, ClassificationScoreOverlapException } from "src/common/exceptions/classification.exception";
 
 export const validateScoreRange= (min: number, max: number): boolean => {
     if(min>max){
-        throw new BadRequestException('min_score must be less than or equal to max_score');
+        throw new ClassificationScoreOutOfRangeException();
     }
     return true;
 };
@@ -24,6 +25,6 @@ export const validateOverlap=async (repository: Repository<ClassificationRule>,c
     );
         
     if(overlap){
-        throw new BadRequestException(`Score range overlaps with existing rule: ${overlap.label} (${overlap.min_score}-${overlap.max_score})`);
+        throw new ClassificationScoreOverlapException();
     }
 }

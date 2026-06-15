@@ -19,6 +19,4 @@ export class CreateClassificationRuleDto {
   @IsOptional()
   is_active?: boolean;
 
-  @IsInt()
-  created_by!: number;
 }
