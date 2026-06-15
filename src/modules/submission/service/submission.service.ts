@@ -12,6 +12,8 @@ import { ResponseSubmissionDto } from '../dto/response-submission.dto';
 import { SubmissionNotFoundException } from 'src/common/exceptions/submission.exception';
 import { Employee } from 'src/modules/employee/entity/employee.entity';
 import { ResultService } from 'src/modules/result/result.service';
+import { AuditHelper } from 'src/modules/audit-log/audit-helper.service';
+import { AuditAction, AuditModule } from 'src/modules/audit-log/entity/audit-log.entity';
 
 @Injectable()
 export class SubmissionService {
@@ -23,142 +25,164 @@ export class SubmissionService {
 
     @InjectRepository(Questionnaire)
     private readonly questionnaireRepository: Repository<Questionnaire>,
-    
 
     private readonly dataSource: DataSource,
+    private readonly audit: AuditHelper,
   ) {}
 
   async create(dto: CreateSubmissionDto, userAgent: string) {
-    const questionnaire = await this.questionnaireRepository.findOneBy({
-      id: dto.questionnaire_id,
-    });
-
-    if (!questionnaire) {
-      throw new QuestionnaireNotFoundException();
-    }
-
-    const anonymousSessionId = generateSessionID(
-      dto.questionnaire_id,
-      dto.fingerprint,
-      userAgent,
-    );
-
-    const existing = await this.submissionRepository.findOne({
-      where: {
-        questionnaire: {
-          id: dto.questionnaire_id,
-        },
-        anonymousSessionId,
-      },
-    });
-
-    if (existing) {
-      throw new BadRequestException(
-        'Submission already exists for this session and questionnaire',
-      );
-    }
-
-    return this.dataSource.transaction(async (manager) => {
-      const submission = manager.create(Submission, {
-        questionnaire: {
-          id: dto.questionnaire_id,
-        },
-        anonymousSessionId,
+    const employeeId = 0; // anonymous submission — no auth context
+    const base = { employeeId, action: AuditAction.CREATE, module: AuditModule.SUBMISSION };
+    try {
+      const questionnaire = await this.questionnaireRepository.findOneBy({
+        id: dto.questionnaire_id,
       });
 
-      const savedSubmission = await manager.save(Submission, submission);
+      if (!questionnaire) {
+        throw new QuestionnaireNotFoundException();
+      }
 
-      await this.answerService.saveAnswers(
-        manager,
-        savedSubmission.id,
-        dto.answers,
+      const anonymousSessionId = generateSessionID(
+        dto.questionnaire_id,
+        dto.fingerprint,
+        userAgent,
       );
 
-      const results=await this.resultService.calculate(
-        savedSubmission.id,
-        manager,
-      );
+      const existing = await this.submissionRepository.findOne({
+        where: {
+          questionnaire: { id: dto.questionnaire_id },
+          anonymousSessionId,
+        },
+      });
 
-      return {
-        success: true,
-        message: 'Submission saved successfully',
-        submission_id: savedSubmission.id,
-        results,
-      };
-    });
+      if (existing) {
+        throw new BadRequestException(
+          'Submission already exists for this session and questionnaire',
+        );
+      }
+
+      const txResult = await this.dataSource.transaction(async (manager) => {
+        const submission = manager.create(Submission, {
+          questionnaire: { id: dto.questionnaire_id },
+          anonymousSessionId,
+        });
+
+        const savedSubmission = await manager.save(Submission, submission);
+
+        await this.answerService.saveAnswers(
+          manager,
+          savedSubmission.id,
+          dto.answers,
+        );
+
+        const results = await this.resultService.calculate(
+          savedSubmission.id,
+          manager,
+        );
+
+        return {
+          success: true,
+          message: 'Submission saved successfully',
+          submission_id: savedSubmission.id,
+          results,
+        };
+      });
+
+      // Audit: CREATE submission
+      await this.audit.logSuccess({
+        ...base,
+        recordId: txResult.submission_id,
+        details: { questionnaire_id: dto.questionnaire_id },
+      });
+
+      // Audit: GENERATE results
+      await this.audit.logSuccess({
+        employeeId,
+        action: AuditAction.GENERATE,
+        module: AuditModule.RESULT,
+        recordId: txResult.submission_id,
+        details: {
+          questionnaire_id: dto.questionnaire_id,
+          result_count: txResult.results.length,
+        },
+      });
+
+      return txResult;
+    } catch (error) {
+      await this.audit.logFailure(
+        { ...base, details: { questionnaire_id: dto.questionnaire_id } },
+        error,
+      );
+      throw error;
+    }
   }
 
-  async findAll(){
+  async findAll() {
     return plainToInstance(
       ResponseSubmissionDto,
       await this.submissionRepository.find({
-        where: {
-          deleted_at: IsNull(),
-        },
-        relations:{
+        where: { deleted_at: IsNull() },
+        relations: {
           questionnaire: true,
-          answers: {
-              question: true,
-          },
-        }
+          answers: { question: true },
+        },
       }),
-      {
-        excludeExtraneousValues: true,
-      },
+      { excludeExtraneousValues: true },
     );
   }
 
-  async findOne(id: string){
+  async findOne(id: string) {
     const submission = await this.submissionRepository.findOne({
-      where: {
-        id,
-      },
-      relations:{
+      where: { id },
+      relations: {
         questionnaire: true,
-        answers: {
-            question: true,
-        },
-      }
+        answers: { question: true },
+      },
     });
-    if(!submission){
-        throw new SubmissionNotFoundException();
+    if (!submission) {
+      throw new SubmissionNotFoundException();
     }
 
     return {
-        success: true,
-        data: plainToInstance(ResponseSubmissionDto, submission)
+      success: true,
+      data: plainToInstance(ResponseSubmissionDto, submission),
     };
   }
 
   async delete(id: string, deleteBy: number) {
-    const submission = await this.submissionRepository.findOneBy({ id });
-    if (!submission) {
-      throw new SubmissionNotFoundException();
+    const base = { employeeId: deleteBy, action: AuditAction.DELETE, module: AuditModule.SUBMISSION, recordId: id };
+    try {
+      const submission = await this.submissionRepository.findOneBy({ id });
+      if (!submission) {
+        throw new SubmissionNotFoundException();
+      }
+      await this.submissionRepository.update(id, {
+        deleted_by: { id: deleteBy } as Employee,
+      });
+      await this.submissionRepository.softDelete(id);
+      await this.audit.logSuccess({
+        ...base,
+        details: { questionnaire_id: submission.questionnaire?.id },
+      });
+      return { success: true, message: 'Submission deleted successfully' };
+    } catch (error) {
+      await this.audit.logFailure({ ...base }, error);
+      throw error;
     }
-    await this.submissionRepository.update(id, {
-      deleted_by: { id: deleteBy } as Employee,
-    });
-    await this.submissionRepository.softDelete(id);
-    return {
-      success: true,
-      message: 'Submission deleted successfully',
-    };
   }
 
   async findByQuestionnaire(questionnaireId: string) {
-    const questionnaire= await this.questionnaireRepository.findOneBy({
-        id: questionnaireId,
-    })
-    if(!questionnaire){
-        throw new QuestionnaireNotFoundException();
+    const questionnaire = await this.questionnaireRepository.findOneBy({
+      id: questionnaireId,
+    });
+    if (!questionnaire) {
+      throw new QuestionnaireNotFoundException();
     }
-    const submissions= await this.submissionRepository.find({
+    const submissions = await this.submissionRepository.find({
       where: {
         questionnaire: { id: questionnaireId },
       },
-      order: {
-        submitted_at: 'DESC',
-      },
+      order: { submitted_at: 'DESC' },
     });
 
     return {
@@ -170,4 +194,3 @@ export class SubmissionService {
     };
   }
 }
-

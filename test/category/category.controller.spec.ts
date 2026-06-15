@@ -38,7 +38,7 @@ describe('CategoryController', () => {
     mockCategoryService.create.mockResolvedValue(dto);
 
     expect(await controller.create(dto)).toEqual(dto);
-    expect(mockCategoryService.create).toHaveBeenCalledWith(dto);
+    expect(mockCategoryService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('should find all categories', async () => {
@@ -62,7 +62,7 @@ describe('CategoryController', () => {
     mockCategoryService.update.mockResolvedValue(category);
 
     expect(await controller.update('uuid-1', dto)).toEqual(category);
-    expect(mockCategoryService.update).toHaveBeenCalledWith('uuid-1', dto);
+    expect(mockCategoryService.update).toHaveBeenCalledWith('uuid-1', dto, 1);
   });
 
   it('should remove category', async () => {
@@ -72,7 +72,7 @@ describe('CategoryController', () => {
     };
     mockCategoryService.delete.mockResolvedValue(response);
 
-    expect(await controller.remove('uuid-1')).toEqual(response);
-    expect(mockCategoryService.delete).toHaveBeenCalledWith('uuid-1');
+    expect(await controller.delete('uuid-1')).toEqual(response);
+    expect(mockCategoryService.delete).toHaveBeenCalledWith('uuid-1', 1);
   });
 });

@@ -18,7 +18,7 @@ export class QuestionController {
 
   @Post()
   create(@Body() createQuestionDto: CreateQuestionDto) {
-    return this.questionService.create(createQuestionDto);
+    return this.questionService.create(createQuestionDto, getCurrentUser);
   }
 
   @Get()

@@ -10,36 +10,48 @@ import { ClassificationRuleNotFoundException } from 'src/common/exceptions/class
 import { UpdateClassificationRuleDto } from './dto/update.classification.dto';
 import { Employee } from '../employee/entity/employee.entity';
 import { Category } from '../category/entity/category.entity';
+import { AuditHelper } from '../audit-log/audit-helper.service';
+import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
 
 @Injectable()
 export class ClassificationRuleService {
     constructor(
-        @InjectRepository(ClassificationRule) private classificationRuleRepository: Repository<ClassificationRule>,
+        @InjectRepository(ClassificationRule)
+        private readonly classificationRuleRepository: Repository<ClassificationRule>,
+        private readonly audit: AuditHelper,
     ) {}
 
-    async create(dto: CreateClassificationRuleDto) {
-        validateScoreRange(dto.min_score, dto.max_score);
-        await validateOverlap(
-            this.classificationRuleRepository,
-            dto.category_id,
-            dto.min_score,
-            dto.max_score,
-        );
-        const rule= this.classificationRuleRepository.create({
-            category: { id: dto.category_id },
-            label: dto.label,
-            min_score: dto.min_score,
-            max_score: dto.max_score,
-            is_active: dto.is_active ?? true,
-            created_by: { id: dto.created_by },
-        });
-        const savedRule = await this.classificationRuleRepository.save(rule);
-        return plainToInstance(
-            ResponseClassificationRuleDto,
-            savedRule,
-            { excludeExtraneousValues: true },
-        )
+    async create(dto: CreateClassificationRuleDto, employeeId: number) {
+        const base = { employeeId, action: AuditAction.CREATE, module: AuditModule.CLASSIFICATION_RULE };
+        try {
+            validateScoreRange(dto.min_score, dto.max_score);
+            await validateOverlap(
+                this.classificationRuleRepository,
+                dto.category_id,
+                dto.min_score,
+                dto.max_score,
+            );
+            const rule = this.classificationRuleRepository.create({
+                category: { id: dto.category_id },
+                label: dto.label,
+                min_score: dto.min_score,
+                max_score: dto.max_score,
+                is_active: dto.is_active ?? true,
+                created_by: { id: employeeId },
+            });
+            const saved = await this.classificationRuleRepository.save(rule);
+            await this.audit.logSuccess({
+                ...base,
+                recordId: saved.id,
+                details: { label: saved.label, min_score: saved.min_score, max_score: saved.max_score },
+            });
+            return plainToInstance(ResponseClassificationRuleDto, saved, { excludeExtraneousValues: true });
+        } catch (error) {
+            await this.audit.logFailure({ ...base, details: { label: dto.label } }, error);
+            throw error;
+        }
     }
+
     async findAll() {
         const rules = await this.classificationRuleRepository.find({
             where: { deleted_at: IsNull() },
@@ -50,12 +62,11 @@ export class ClassificationRuleService {
             },
             order: { created_at: 'DESC' },
         });
-        return rules.map(rule => plainToInstance(
-            ResponseClassificationRuleDto,
-            rule,
-            { excludeExtraneousValues: true },
-        ));
+        return rules.map(rule =>
+            plainToInstance(ResponseClassificationRuleDto, rule, { excludeExtraneousValues: true }),
+        );
     }
+
     async findOne(id: string) {
         const rule = await this.classificationRuleRepository.findOne({
             where: { id, deleted_at: IsNull() },
@@ -65,63 +76,60 @@ export class ClassificationRuleService {
                 updated_by: true,
             },
         });
-        if (!rule) {
-            throw new ClassificationRuleNotFoundException();
-        }
-        return plainToInstance(
-            ResponseClassificationRuleDto,
-            rule,
-            { excludeExtraneousValues: true },
-        );
+        if (!rule) throw new ClassificationRuleNotFoundException();
+        return plainToInstance(ResponseClassificationRuleDto, rule, { excludeExtraneousValues: true });
     }
-    async update(id: string, dto: UpdateClassificationRuleDto, updatedBy: number) {
-        const rule = await this.classificationRuleRepository.findOne({
-            where: { id, deleted_at: IsNull() },
-            relations:{
-                category: true,
-            }
-        });
-        if (!rule) {
-            throw new ClassificationRuleNotFoundException();
-        }
-        const categoryId = dto.category_id ?? rule.category.id;
-        const minScore = dto.min_score ?? rule.min_score;
-        const maxScore = dto.max_score ?? rule.max_score;
-        validateScoreRange(minScore, maxScore);
-        await validateOverlap(
-            this.classificationRuleRepository,
-            categoryId,
-            minScore,
-            maxScore,
-            id,
-        );
-        rule.category = { id: categoryId } as Category;
-        rule.min_score = minScore;
-        rule.max_score = maxScore;
-        rule.label = dto.label ?? rule.label;
-        rule.is_active = dto.is_active ?? rule.is_active;
-        rule.updated_by = { id: updatedBy } as Employee;
-        const updated=await this.classificationRuleRepository.save(rule);
-        return plainToInstance(
-            ResponseClassificationRuleDto,
-            updated,
-            { excludeExtraneousValues: true },
-        );
-    }
-    async delete(id: string, deletedBy: number) {
-        const rule = await this.classificationRuleRepository.findOne({
-            where: { id, deleted_at: IsNull() },
-        });
-        if (!rule) {
-            throw new ClassificationRuleNotFoundException();
-        }
-        rule.deleted_by = { id: deletedBy } as Employee;
-        await this.classificationRuleRepository.save(rule);
-        await this.classificationRuleRepository.softDelete(id);
 
-        return {
-            success: true,
-            message: 'Classification rule deleted successfully'
+    async update(id: string, dto: UpdateClassificationRuleDto, employeeId: number) {
+        const base = { employeeId, action: AuditAction.UPDATE, module: AuditModule.CLASSIFICATION_RULE, recordId: id };
+        let previous: ClassificationRule | undefined;
+        try {
+            const rule = await this.classificationRuleRepository.findOne({
+                where: { id, deleted_at: IsNull() },
+                relations: { category: true },
+            });
+            if (!rule) throw new ClassificationRuleNotFoundException();
+            previous = { ...rule };
+
+            const categoryId = dto.category_id ?? rule.category.id;
+            const minScore = dto.min_score ?? rule.min_score;
+            const maxScore = dto.max_score ?? rule.max_score;
+            validateScoreRange(minScore, maxScore);
+            await validateOverlap(this.classificationRuleRepository, categoryId, minScore, maxScore, id);
+
+            rule.category = { id: categoryId } as Category;
+            rule.min_score = minScore;
+            rule.max_score = maxScore;
+            rule.label = dto.label ?? rule.label;
+            rule.is_active = dto.is_active ?? rule.is_active;
+            rule.updated_by = { id: employeeId } as Employee;
+
+            const saved = await this.classificationRuleRepository.save(rule);
+            await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
+            return plainToInstance(ResponseClassificationRuleDto, saved, { excludeExtraneousValues: true });
+        } catch (error) {
+            await this.audit.logFailure({ ...base, details: { old: previous, new: dto } }, error);
+            throw error;
+        }
+    }
+
+    async delete(id: string, employeeId: number) {
+        const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.CLASSIFICATION_RULE, recordId: id };
+        let ruleLabel = '';
+        try {
+            const rule = await this.classificationRuleRepository.findOne({
+                where: { id, deleted_at: IsNull() },
+            });
+            if (!rule) throw new ClassificationRuleNotFoundException();
+            ruleLabel = rule.label;
+            rule.deleted_by = { id: employeeId } as Employee;
+            await this.classificationRuleRepository.save(rule);
+            await this.classificationRuleRepository.softDelete(id);
+            await this.audit.logSuccess({ ...base, details: { label: ruleLabel } });
+            return { success: true, message: 'Classification rule deleted successfully' };
+        } catch (error) {
+            await this.audit.logFailure({ ...base, details: ruleLabel ? { label: ruleLabel } : {} }, error);
+            throw error;
         }
     }
 }

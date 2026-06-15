@@ -39,6 +39,13 @@ describe('EmployeeService', () => {
           provide: getRepositoryToken(Employee),
           useValue: mockEmployeeRepository,
         },
+        {
+          provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
+          useValue: {
+            logSuccess: jest.fn(),
+            logFailure: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -61,7 +68,7 @@ describe('EmployeeService', () => {
     mockEmployeeRepository.create.mockReturnValue(dto);
     mockEmployeeRepository.save.mockResolvedValue(employee);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 1);
 
     expect(mockEmployeeRepository.create).toHaveBeenCalledWith(dto);
     expect(mockEmployeeRepository.save).toHaveBeenCalledWith(dto);
@@ -114,7 +121,7 @@ describe('EmployeeService', () => {
     mockEmployeeRepository.merge.mockReturnValue(updatedEmployee);
     mockEmployeeRepository.save.mockResolvedValue(updatedEmployee);
 
-    const result = await service.update(1, dto);
+    const result = await service.update(1, dto, 1);
 
     expect(mockEmployeeRepository.findOne).toHaveBeenCalledWith({
       where: {
@@ -131,7 +138,7 @@ describe('EmployeeService', () => {
   it('should throw EmployeeNotFoundException when updating missing employee', async () => {
     mockEmployeeRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.update(1, {} as any)).rejects.toThrow(
+    await expect(service.update(1, {} as any, 1)).rejects.toThrow(
       EmployeeNotFoundException,
     );
   });
@@ -140,7 +147,7 @@ describe('EmployeeService', () => {
     mockEmployeeRepository.findOne.mockResolvedValue(employee);
     mockEmployeeRepository.softDelete.mockResolvedValue({ affected: 1 });
 
-    const result = await service.delete(1);
+    const result = await service.delete(1, 1);
 
     expect(mockEmployeeRepository.softDelete).toHaveBeenCalledWith(1);
     expect(result).toEqual({
@@ -152,6 +159,6 @@ describe('EmployeeService', () => {
   it('should throw EmployeeNotFoundException when deleting missing employee', async () => {
     mockEmployeeRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete(1)).rejects.toThrow(EmployeeNotFoundException);
+    await expect(service.delete(1, 1)).rejects.toThrow(EmployeeNotFoundException);
   });
 });

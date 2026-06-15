@@ -1,4 +1,4 @@
-import { Body, Injectable, Res } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Submission } from '../submission/entity/submission.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Result } from './entity/result.entity';
@@ -14,6 +14,8 @@ import { Employee } from '../employee/entity/employee.entity';
 import { ResultExportDto, ResultExportMode } from './dto/result-export.dto';
 import { ResultExportService } from './export/result-export.service';
 import { ExportResultRow } from './export/interfaces/result-exporter.interface';
+import { AuditHelper } from '../audit-log/audit-helper.service';
+import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
 
 @Injectable()
 export class ResultService {
@@ -28,6 +30,7 @@ export class ResultService {
         private readonly answerRepository: Repository<Answer>,
         @InjectRepository(ClassificationRule)
         private readonly classificationRuleRepository: Repository<ClassificationRule>,
+        private readonly audit: AuditHelper,
     ) {} 
 
     //Result-Service for Result Controller
@@ -93,27 +96,38 @@ export class ResultService {
 
 
     async deleteMany(dto: ResultBulkActionDto) {
-        const resultsIds= await this.resolveSelectedResultsIds(dto);
-        
-        if(!resultsIds.length){
-            throw new Error('No results to delete.');
+        const employeeId = dto.deletedBy ?? 0;
+        const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.RESULT };
+        try {
+            const resultsIds= await this.resolveSelectedResultsIds(dto);
+            
+            if(!resultsIds.length){
+                throw new Error('No results to delete.');
+            }
+            if(dto.deletedBy){
+                await this.resultRepository.update(
+                    {id: In(resultsIds)},
+                    {
+                        deleted_by: {
+                            id: dto.deletedBy,
+                        }as Employee
+                    }
+                );
+            }
+            await this.resultRepository.softDelete(resultsIds);
+            await this.audit.logSuccess({
+                ...base,
+                details: { deletedCount: resultsIds.length, resultIds: resultsIds },
+            });
+            return {
+                success: true,
+                message: 'Results deleted successfully.',
+                deletedCount: resultsIds.length,
+            };
+        } catch (error) {
+            await this.audit.logFailure({ ...base, details: { mode: dto.mode } }, error);
+            throw error;
         }
-        if(dto.deletedBy){
-            await this.resultRepository.update(
-                {id: In(resultsIds)},
-                {
-                    deleted_by: {
-                        id: dto.deletedBy,
-                    }as Employee
-                }
-            );
-        }
-        await this.resultRepository.softDelete(resultsIds);
-        return {
-            success: true,
-            message: 'Results deleted successfully.',
-            deletedCount: resultsIds.length,
-        };
     }
 
     // helper function for deleteMany Method
@@ -134,12 +148,20 @@ export class ResultService {
     }
 
     async exportResult(dto: ResultExportDto) {
-       const rows=await this.resolveExportRows(dto);
-
-       return this.resultExportService.export(
-        dto.format,
-        rows,
-       )
+        const employeeId = 0; // no auth context — system
+        const base = { employeeId, action: AuditAction.EXPORT, module: AuditModule.RESULT };
+        try {
+            const rows = await this.resolveExportRows(dto);
+            const file = await this.resultExportService.export(dto.format, rows);
+            await this.audit.logSuccess({
+                ...base,
+                details: { format: dto.format, rowCount: rows.length },
+            });
+            return file;
+        } catch (error) {
+            await this.audit.logFailure({ ...base, details: { format: dto.format } }, error);
+            throw error;
+        }
     }
     
     private async resolveExportRows(
@@ -188,7 +210,6 @@ export class ResultService {
         }));
     }
     
-
 
 
     //Result-Calculation That use in Submission Service

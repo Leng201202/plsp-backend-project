@@ -1,42 +1,52 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Question } from './entity/question.entity';
-import { IsNull, Repository } from 'typeorm';
+import { DeepPartial, IsNull, Repository } from 'typeorm';
 import { CreateQuestionDto } from './dto/create.question.dto';
 import { plainToInstance } from 'class-transformer';
 import { QuestionResponseDto } from './dto/response-question.dto';
 import { UpdateQuestionDto } from './dto/update.question.dto';
 import { QuestionNotFoundException } from 'src/common/exceptions/question.exception';
 import { Employee } from '../employee/entity/employee.entity';
+import { AuditHelper } from '../audit-log/audit-helper.service';
+import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
 
 @Injectable()
 export class QuestionService {
   constructor(
     @InjectRepository(Question)
     private readonly questionRepository: Repository<Question>,
+    private readonly audit: AuditHelper,
   ) {}
 
-  async create(dto: CreateQuestionDto) {
-    const { questionnaire_id, category_id, created_by, ...rest } = dto;
-    const question = this.questionRepository.create({
-      ...rest,
-      questionnaire: { id: questionnaire_id },
-      category: { id: category_id },
-      created_by: { id: created_by } as any,
-    } as any);
-    return plainToInstance(
-      QuestionResponseDto,
-      await this.questionRepository.save(question),
-    );
+  async create(dto: CreateQuestionDto, employeeId: number) {
+    const base = { employeeId, action: AuditAction.CREATE, module: AuditModule.QUESTION };
+    try {
+      const { questionnaire_id, category_id, created_by, ...rest } = dto;
+      const question = this.questionRepository.create({
+        ...rest,
+        questionnaire: { id: questionnaire_id },
+        category: { id: category_id },
+        created_by: { id: created_by },
+      } as DeepPartial<Question>);
+      const saved = await this.questionRepository.save(question as Question);
+      await this.audit.logSuccess({
+        ...base,
+        recordId: saved.id,
+        details: { question_text: saved.question_text, questionnaire_id, category_id },
+      });
+      return plainToInstance(QuestionResponseDto, saved);
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: { question_text: dto.question_text } }, error);
+      throw error;
+    }
   }
 
   async findAll() {
     return plainToInstance(
       QuestionResponseDto,
       await this.questionRepository.find({
-        where: {
-          deleted_at: IsNull(),
-        },
+        where: { deleted_at: IsNull() },
         relations: {
           questionnaire: true,
           category: true,
@@ -57,50 +67,47 @@ export class QuestionService {
         updated_by: true,
       },
     });
-    if (!question) {
-      throw new QuestionNotFoundException();
-    }
+    if (!question) throw new QuestionNotFoundException();
     return plainToInstance(QuestionResponseDto, question);
   }
 
-  async update(id: string, dto: UpdateQuestionDto, updated_by: number) {
-    const question = await this.questionRepository.findOne({
-      where: { id, deleted_at: IsNull() },
-    });
-    if (!question) {
-      throw new QuestionNotFoundException();
+  async update(id: string, dto: UpdateQuestionDto, employeeId: number) {
+    const base = { employeeId, action: AuditAction.UPDATE, module: AuditModule.QUESTION, recordId: id };
+    let previous: Question | undefined;
+    try {
+      const question = await this.questionRepository.findOne({ where: { id, deleted_at: IsNull() } });
+      if (!question) throw new QuestionNotFoundException();
+      previous = { ...question };
+      const { questionnaire_id, category_id, created_by, ...rest } = dto;
+      const updateData: any = { ...rest };
+      if (questionnaire_id) updateData.questionnaire = { id: questionnaire_id };
+      if (category_id) updateData.category = { id: category_id };
+      if (created_by) updateData.created_by = { id: created_by };
+      if (employeeId) updateData.updated_by = { id: employeeId };
+      const saved = await this.questionRepository.save(this.questionRepository.merge(question, updateData));
+      await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
+      return plainToInstance(QuestionResponseDto, saved);
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: { old: previous, new: dto } }, error);
+      throw error;
     }
-
-    const { questionnaire_id, category_id, created_by, ...rest } =
-      dto;
-
-    // Convert IDs to objects for TypeORM relations
-    const updateData: any = { ...rest };
-    if (questionnaire_id) updateData.questionnaire = { id: questionnaire_id };
-    if (category_id) updateData.category = { id: category_id };
-    if (created_by) updateData.created_by = { id: created_by };
-    if (updated_by) updateData.updated_by = { id: updated_by };
-
-    const updatedQuestion = this.questionRepository.merge(question, updateData);
-    return plainToInstance(
-      QuestionResponseDto,
-      await this.questionRepository.save(updatedQuestion),
-    );
   }
 
-  async delete(id: string, deleted_by: number) {
-    const question = await this.questionRepository.findOne({
-      where: { id, deleted_at: IsNull() },
-    });
-    if (!question) {
-      throw new QuestionNotFoundException();
+  async delete(id: string, employeeId: number) {
+    const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.QUESTION, recordId: id };
+    let questionText = '';
+    try {
+      const question = await this.questionRepository.findOne({ where: { id, deleted_at: IsNull() } });
+      if (!question) throw new QuestionNotFoundException();
+      questionText = question.question_text;
+      question.deleted_by = { id: employeeId } as Employee;
+      await this.questionRepository.save(question);
+      await this.questionRepository.softDelete(id);
+      await this.audit.logSuccess({ ...base, details: { question_text: questionText } });
+      return { message: 'Question deleted successfully', success: true };
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: questionText ? { question_text: questionText } : {} }, error);
+      throw error;
     }
-    question.deleted_by = { id: deleted_by } as Employee;
-    await this.questionRepository.save(question);
-    await this.questionRepository.softDelete(id);
-    return {
-      message: 'Question deleted successfully',
-      success: true,
-    };
   }
 }

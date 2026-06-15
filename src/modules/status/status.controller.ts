@@ -18,7 +18,7 @@ export class StatusController {
 
   @Post()
   create(@Body() createStatusDto: CreateStatusDto) {
-    return this.statusService.create(createStatusDto);
+    return this.statusService.create(createStatusDto, getCurrentUser);
   }
 
   @Get()

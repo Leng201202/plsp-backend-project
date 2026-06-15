@@ -42,7 +42,7 @@ describe('QuestionController', () => {
     mockQuestionService.create.mockResolvedValue(dto);
 
     expect(await controller.create(dto)).toEqual(dto);
-    expect(mockQuestionService.create).toHaveBeenCalledWith(dto);
+    expect(mockQuestionService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('should find all questions', async () => {
@@ -66,7 +66,7 @@ describe('QuestionController', () => {
     mockQuestionService.update.mockResolvedValue(question);
 
     expect(await controller.update('uuid-1', dto)).toEqual(question);
-    expect(mockQuestionService.update).toHaveBeenCalledWith('uuid-1', dto);
+    expect(mockQuestionService.update).toHaveBeenCalledWith('uuid-1', dto, 1);
   });
 
   it('should remove question', async () => {
@@ -77,6 +77,6 @@ describe('QuestionController', () => {
     mockQuestionService.delete.mockResolvedValue(response);
 
     expect(await controller.remove('uuid-1')).toEqual(response);
-    expect(mockQuestionService.delete).toHaveBeenCalledWith('uuid-1');
+    expect(mockQuestionService.delete).toHaveBeenCalledWith('uuid-1', 1);
   });
 });

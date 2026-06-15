@@ -45,7 +45,7 @@ describe('EmployeeController', () => {
     mockEmployeeService.create.mockResolvedValue(dto);
 
     expect(await controller.create(dto)).toEqual(dto);
-    expect(mockEmployeeService.create).toHaveBeenCalledWith(dto);
+    expect(mockEmployeeService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('should find all employees', async () => {
@@ -71,7 +71,7 @@ describe('EmployeeController', () => {
     mockEmployeeService.update.mockResolvedValue(employee);
 
     expect(await controller.update(1, dto)).toEqual(employee);
-    expect(mockEmployeeService.update).toHaveBeenCalledWith(1, dto);
+    expect(mockEmployeeService.update).toHaveBeenCalledWith(1, dto, 1);
   });
 
   it('should remove employee', async () => {
@@ -83,6 +83,6 @@ describe('EmployeeController', () => {
     mockEmployeeService.delete.mockResolvedValue(response);
 
     expect(await controller.delete(1)).toEqual(response);
-    expect(mockEmployeeService.delete).toHaveBeenCalledWith(1);
+    expect(mockEmployeeService.delete).toHaveBeenCalledWith(1, 1);
   });
 });

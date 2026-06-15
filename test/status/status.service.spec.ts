@@ -37,6 +37,13 @@ describe('StatusService', () => {
           provide: getRepositoryToken(Status),
           useValue: mockStatusRepository,
         },
+        {
+          provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
+          useValue: {
+            logSuccess: jest.fn(),
+            logFailure: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -58,13 +65,13 @@ describe('StatusService', () => {
     mockStatusRepository.create.mockReturnValue(statusMock);
     mockStatusRepository.save.mockResolvedValue(statusMock);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 1);
 
     expect(mockStatusRepository.create).toHaveBeenCalledWith({
       name: dto.name,
       description: dto.description,
       created_by: { id: dto.created_by },
-      updated_by: { id: dto.updated_by },
+      updated_by: dto.updated_by,
     });
     expect(mockStatusRepository.save).toHaveBeenCalledWith(statusMock);
     expect(result).toMatchObject({
@@ -122,13 +129,14 @@ describe('StatusService', () => {
     mockStatusRepository.merge.mockReturnValue(updatedStatus);
     mockStatusRepository.save.mockResolvedValue(updatedStatus);
 
-    const result = await service.update('status-uuid-1', dto);
+    const result = await service.update('status-uuid-1', dto, 1);
 
     expect(mockStatusRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'status-uuid-1', deleted_at: IsNull() },
     });
     expect(mockStatusRepository.merge).toHaveBeenCalledWith(statusMock, {
       name: 'Updated status',
+      updated_by: { id: 1 },
     });
     expect(mockStatusRepository.save).toHaveBeenCalledWith(updatedStatus);
     expect(result).toMatchObject({ id: statusMock.id, name: 'Updated status' });
@@ -138,7 +146,7 @@ describe('StatusService', () => {
     mockStatusRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.update('status-uuid-1', { name: 'test' }),
+      service.update('status-uuid-1', { name: 'test' }, 1),
     ).rejects.toThrow(StatusNotFoundException);
   });
 
@@ -146,7 +154,7 @@ describe('StatusService', () => {
     mockStatusRepository.findOne.mockResolvedValue(statusMock);
     mockStatusRepository.softDelete.mockResolvedValue({ affected: 1 });
 
-    const result = await service.delete('status-uuid-1');
+    const result = await service.delete('status-uuid-1', 1);
 
     expect(mockStatusRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'status-uuid-1', deleted_at: IsNull() },
@@ -163,7 +171,7 @@ describe('StatusService', () => {
   it('should throw StatusNotFoundException when deleting missing/soft-deleted status', async () => {
     mockStatusRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('status-uuid-1')).rejects.toThrow(
+    await expect(service.delete('status-uuid-1', 1)).rejects.toThrow(
       StatusNotFoundException,
     );
   });

@@ -10,6 +10,7 @@ import {
 import { EmployeeService } from './employee.service';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
+import { getCurrentUser } from 'src/common/middleware/curr_user';
 
 @Controller('employee')
 export class EmployeeController {
@@ -17,7 +18,7 @@ export class EmployeeController {
 
   @Post()
   create(@Body() dto: CreateEmployeeDto) {
-    return this.employeeService.create(dto);
+    return this.employeeService.create(dto,getCurrentUser);
   }
   @Get()
   findAll() {
@@ -29,10 +30,10 @@ export class EmployeeController {
   }
   @Patch(':id')
   update(@Param('id') id: number, @Body() dto: UpdateEmployeeDto) {
-    return this.employeeService.update(id, dto);
+    return this.employeeService.update(id, dto,getCurrentUser);
   }
   @Delete(':id')
   delete(@Param('id') id: number) {
-    return this.employeeService.delete(id);
+    return this.employeeService.delete(id,getCurrentUser);
   }
 }

@@ -37,6 +37,13 @@ describe('CategoryService', () => {
           provide: getRepositoryToken(Category),
           useValue: mockCategoryRepository,
         },
+        {
+          provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
+          useValue: {
+            logSuccess: jest.fn(),
+            logFailure: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -58,13 +65,13 @@ describe('CategoryService', () => {
     mockCategoryRepository.create.mockReturnValue(categoryMock);
     mockCategoryRepository.save.mockResolvedValue(categoryMock);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 1);
 
     expect(mockCategoryRepository.create).toHaveBeenCalledWith({
       name: dto.name,
       description: dto.description,
       created_by: { id: dto.created_by },
-      updated_by: { id: dto.updated_by },
+      updated_by: dto.updated_by,
     });
     expect(mockCategoryRepository.save).toHaveBeenCalledWith(categoryMock);
     expect(result).toMatchObject({
@@ -122,13 +129,15 @@ describe('CategoryService', () => {
     mockCategoryRepository.merge.mockReturnValue(updatedCategory);
     mockCategoryRepository.save.mockResolvedValue(updatedCategory);
 
-    const result = await service.update('category-uuid-1', dto);
+    const result = await service.update('category-uuid-1', dto, 1);
 
     expect(mockCategoryRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'category-uuid-1', deleted_at: IsNull() },
     });
     expect(mockCategoryRepository.merge).toHaveBeenCalledWith(categoryMock, {
       name: 'Updated category',
+      description: categoryMock.description,
+      updated_by: { id: 1 },
     });
     expect(mockCategoryRepository.save).toHaveBeenCalledWith(updatedCategory);
     expect(result).toMatchObject({
@@ -141,7 +150,7 @@ describe('CategoryService', () => {
     mockCategoryRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.update('category-uuid-1', { name: 'test' }),
+      service.update('category-uuid-1', { name: 'test' }, 1),
     ).rejects.toThrow(CategoryNotFoundException);
   });
 
@@ -149,7 +158,7 @@ describe('CategoryService', () => {
     mockCategoryRepository.findOne.mockResolvedValue(categoryMock);
     mockCategoryRepository.softDelete.mockResolvedValue({ affected: 1 });
 
-    const result = await service.delete('category-uuid-1');
+    const result = await service.delete('category-uuid-1', 1);
 
     expect(mockCategoryRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'category-uuid-1', deleted_at: IsNull() },
@@ -166,7 +175,7 @@ describe('CategoryService', () => {
   it('should throw CategoryNotFoundException when deleting missing/soft-deleted category', async () => {
     mockCategoryRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('category-uuid-1')).rejects.toThrow(
+    await expect(service.delete('category-uuid-1', 1)).rejects.toThrow(
       CategoryNotFoundException,
     );
   });

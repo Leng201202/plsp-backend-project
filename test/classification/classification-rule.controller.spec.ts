@@ -7,6 +7,12 @@ describe('ClassificationRuleController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ClassificationRuleController],
+      providers: [
+        {
+          provide: require('../../src/modules/classification/classification-rule.service').ClassificationRuleService,
+          useValue: {},
+        },
+      ],
     }).compile();
 
     controller = module.get<ClassificationRuleController>(ClassificationRuleController);

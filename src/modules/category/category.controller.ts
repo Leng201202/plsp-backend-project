@@ -18,7 +18,7 @@ export class CategoryController {
 
   @Post()
   create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoryService.create(createCategoryDto);
+    return this.categoryService.create(createCategoryDto, getCurrentUser);
   }
 
   @Get()
@@ -41,7 +41,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
+  delete(@Param('id') id: string) {
     return this.categoryService.delete(id, getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
   }
 }

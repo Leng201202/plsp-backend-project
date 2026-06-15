@@ -41,6 +41,13 @@ describe('QuestionService', () => {
           provide: getRepositoryToken(Question),
           useValue: mockQuestionRepository,
         },
+        {
+          provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
+          useValue: {
+            logSuccess: jest.fn(),
+            logFailure: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -65,7 +72,7 @@ describe('QuestionService', () => {
     mockQuestionRepository.create.mockReturnValue(questionMock);
     mockQuestionRepository.save.mockResolvedValue(questionMock);
 
-    const result = await service.create(dto);
+    const result = await service.create(dto, 1);
 
     expect(mockQuestionRepository.create).toHaveBeenCalledWith({
       questionnaire: { id: dto.questionnaire_id },
@@ -138,13 +145,14 @@ describe('QuestionService', () => {
     mockQuestionRepository.merge.mockReturnValue(updatedQuestion);
     mockQuestionRepository.save.mockResolvedValue(updatedQuestion);
 
-    const result = await service.update('question-uuid-1', dto);
+    const result = await service.update('question-uuid-1', dto, 1);
 
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'question-uuid-1', deleted_at: IsNull() },
     });
     expect(mockQuestionRepository.merge).toHaveBeenCalledWith(questionMock, {
       question_text: 'Updated question text',
+      updated_by: { id: 1 },
     });
     expect(mockQuestionRepository.save).toHaveBeenCalledWith(updatedQuestion);
     expect(result).toMatchObject({
@@ -157,7 +165,7 @@ describe('QuestionService', () => {
     mockQuestionRepository.findOne.mockResolvedValue(null);
 
     await expect(
-      service.update('question-uuid-1', { question_text: 'test' }),
+      service.update('question-uuid-1', { question_text: 'test' }, 1),
     ).rejects.toThrow(QuestionNotFoundException);
   });
 
@@ -165,7 +173,7 @@ describe('QuestionService', () => {
     mockQuestionRepository.findOne.mockResolvedValue(questionMock);
     mockQuestionRepository.softDelete.mockResolvedValue({ affected: 1 });
 
-    const result = await service.delete('question-uuid-1');
+    const result = await service.delete('question-uuid-1', 1);
 
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'question-uuid-1', deleted_at: IsNull() },
@@ -182,7 +190,7 @@ describe('QuestionService', () => {
   it('should throw QuestionNotFoundException when deleting missing/soft-deleted question', async () => {
     mockQuestionRepository.findOne.mockResolvedValue(null);
 
-    await expect(service.delete('question-uuid-1')).rejects.toThrow(
+    await expect(service.delete('question-uuid-1', 1)).rejects.toThrow(
       QuestionNotFoundException,
     );
   });

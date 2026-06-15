@@ -12,7 +12,7 @@ export class ClassificationRuleController {
 
     @Post()
     create(@Body() dto: CreateClassificationRuleDto) {
-        return this.classificationRuleService.create(dto);
+        return this.classificationRuleService.create(dto, getCurrentUser);
     }
 
     @Get()

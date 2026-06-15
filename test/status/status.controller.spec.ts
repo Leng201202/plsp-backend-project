@@ -38,7 +38,7 @@ describe('StatusController', () => {
     mockStatusService.create.mockResolvedValue(dto);
 
     expect(await controller.create(dto)).toEqual(dto);
-    expect(mockStatusService.create).toHaveBeenCalledWith(dto);
+    expect(mockStatusService.create).toHaveBeenCalledWith(dto, 1);
   });
 
   it('should find all statuses', async () => {
@@ -62,7 +62,7 @@ describe('StatusController', () => {
     mockStatusService.update.mockResolvedValue(status);
 
     expect(await controller.update('uuid-1', dto)).toEqual(status);
-    expect(mockStatusService.update).toHaveBeenCalledWith('uuid-1', dto);
+    expect(mockStatusService.update).toHaveBeenCalledWith('uuid-1', dto, 1);
   });
 
   it('should remove status', async () => {
@@ -70,6 +70,6 @@ describe('StatusController', () => {
     mockStatusService.delete.mockResolvedValue(response);
 
     expect(await controller.remove('uuid-1')).toEqual(response);
-    expect(mockStatusService.delete).toHaveBeenCalledWith('uuid-1');
+    expect(mockStatusService.delete).toHaveBeenCalledWith('uuid-1', 1);
   });
 });

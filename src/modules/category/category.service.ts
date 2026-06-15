@@ -1,44 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from './entity/category.entity';
-import { IsNull, Repository } from 'typeorm';
+import { DeepPartial, IsNull, Repository } from 'typeorm';
 import { CreateCategoryDto } from './dto/create.category.dto';
 import { plainToInstance } from 'class-transformer';
 import { CategoryResponseDto } from './dto/response-category.dto';
 import { UpdateCategoryDto } from './dto/update.category.dto';
 import { CategoryNotFoundException } from 'src/common/exceptions/category.exception';
 import { Employee } from '../employee/entity/employee.entity';
+import { AuditHelper } from '../audit-log/audit-helper.service';
+import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    private readonly audit: AuditHelper,
   ) {}
 
-  async create(dto: CreateCategoryDto) {
-    const { created_by, ...rest } = dto;
-    const category = this.categoryRepository.create({
-      ...rest,
-      ...(created_by && { created_by: { id: created_by } }),
-    } as any);
-    return plainToInstance(
-      CategoryResponseDto,
-      await this.categoryRepository.save(category),
-    );
+  async create(dto: CreateCategoryDto, employeeId: number) {
+    const base = { employeeId, action: AuditAction.CREATE, module: AuditModule.CATEGORY };
+    try {
+      const { created_by, ...rest } = dto;
+      const category = this.categoryRepository.create({
+        ...rest,
+        ...(created_by && { created_by: { id: created_by } }),
+      } as DeepPartial<Category>);
+      const saved = await this.categoryRepository.save(category);
+      await this.audit.logSuccess({ ...base, recordId: saved.id, details: { name: saved.name } });
+      return plainToInstance(CategoryResponseDto, saved);
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: { name: dto.name } }, error);
+      throw error;
+    }
   }
 
   async findAll() {
     return plainToInstance(
       CategoryResponseDto,
       await this.categoryRepository.find({
-        where: {
-          deleted_at: IsNull(),
-        },
-        relations: {
-          created_by: true,
-          updated_by: true,
-        },
+        where: { deleted_at: IsNull() },
+        relations: { created_by: true, updated_by: true },
       }),
     );
   }
@@ -46,50 +49,48 @@ export class CategoryService {
   async findOne(id: string) {
     const category = await this.categoryRepository.findOne({
       where: { id, deleted_at: IsNull() },
-      relations: {
-        created_by: true,
-        updated_by: true,
-      },
+      relations: { created_by: true, updated_by: true },
     });
-    if (!category) {
-      throw new CategoryNotFoundException();
-    }
+    if (!category) throw new CategoryNotFoundException();
     return plainToInstance(CategoryResponseDto, category);
   }
 
-  async update(id: string, dto: UpdateCategoryDto, updated_by: number) {
-    const category = await this.categoryRepository.findOne({
-      where: { id, deleted_at: IsNull() },
-    });
-    if (!category) {
-      throw new CategoryNotFoundException();
+  async update(id: string, dto: UpdateCategoryDto, employeeId: number) {
+    const base = { employeeId, action: AuditAction.UPDATE, module: AuditModule.CATEGORY, recordId: id };
+    let previous: Category | undefined;
+    try {
+      const category = await this.categoryRepository.findOne({ where: { id, deleted_at: IsNull() } });
+      if (!category) throw new CategoryNotFoundException();
+      previous = { ...category };
+      const updateData: any = {
+        name: dto.name ?? category.name,
+        description: dto.description ?? category.description,
+      };
+      if (employeeId) updateData.updated_by = { id: employeeId } as Employee;
+      const saved = await this.categoryRepository.save(this.categoryRepository.merge(category, updateData));
+      await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
+      return plainToInstance(CategoryResponseDto, saved);
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: { old: previous, new: dto } }, error);
+      throw error;
     }
-
-    const updateData: any = { 
-       name: dto.name?? category.name,
-       description: dto.description?? category.description,
-     };
-    if (updated_by) updateData.updated_by = { id: updated_by };
-    const updatedCategory = this.categoryRepository.merge(category, updateData);
-    return plainToInstance(
-      CategoryResponseDto,
-      await this.categoryRepository.save(updatedCategory),
-    );
   }
 
-  async delete(id: string, deleted_by: number) {
-    const category = await this.categoryRepository.findOne({
-      where: { id, deleted_at: IsNull() },
-    });
-    if (!category) {
-      throw new CategoryNotFoundException();
+  async delete(id: string, employeeId: number) {
+    const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.CATEGORY, recordId: id };
+    let categoryName = '';
+    try {
+      const category = await this.categoryRepository.findOne({ where: { id, deleted_at: IsNull() } });
+      if (!category) throw new CategoryNotFoundException();
+      categoryName = category.name;
+      category.deleted_by = { id: employeeId } as Employee;
+      await this.categoryRepository.save(category);
+      await this.categoryRepository.softDelete(id);
+      await this.audit.logSuccess({ ...base, details: { name: categoryName } });
+      return { message: 'Category deleted successfully', success: true };
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: categoryName ? { name: categoryName } : {} }, error);
+      throw error;
     }
-    category.deleted_by = { id: deleted_by } as Employee;
-    await this.categoryRepository.save(category);
-    await this.categoryRepository.softDelete(id);
-    return {
-      message: 'Category deleted successfully',
-      success: true,
-    };
   }
 }
