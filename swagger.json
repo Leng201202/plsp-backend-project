@@ -1,0 +1,1571 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "PLSP Project API",
+    "description": "API documentation for PLSP (Personnel Learning & Succession Planning) project",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Development server"
+    }
+  ],
+  "tags": [
+    { "name": "Audit Log", "description": "Audit log management endpoints" },
+    { "name": "Category", "description": "Category management endpoints" },
+    { "name": "Classification Rule", "description": "Classification rule management endpoints" },
+    { "name": "Employee", "description": "Employee management endpoints" },
+    { "name": "Question", "description": "Question management endpoints" },
+    { "name": "Questionnaire", "description": "Questionnaire management endpoints" },
+    { "name": "Result", "description": "Result management endpoints" },
+    { "name": "Status", "description": "Status management endpoints" },
+    { "name": "Submission", "description": "Submission management endpoints" }
+  ],
+  "paths": {
+    "/audit-log": {
+      "get": {
+        "tags": ["Audit Log"],
+        "summary": "Get all audit logs",
+        "description": "Retrieves a list of all audit log entries",
+        "operationId": "auditLogFindAll",
+        "responses": {
+          "200": {
+            "description": "List of audit log entries",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "action": "CREATE",
+                    "module": "QUESTIONNAIRE",
+                    "record_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "details": {
+                      "questionnaire_id": "550e8400-e29b-41d4-a716-446655440000",
+                      "title": "Employee Satisfaction Survey 2026"
+                    },
+                    "status": "SUCCESS",
+                    "ip_address": "192.168.1.100",
+                    "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)",
+                    "timestamp": "2026-06-15T10:30:00.000Z",
+                    "employee": {
+                      "id": 1,
+                      "fullName": "John Doe",
+                      "email": "john.doe@example.com"
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/category": {
+      "post": {
+        "tags": ["Category"],
+        "summary": "Create a new category",
+        "description": "Creates a new category with the provided data",
+        "operationId": "categoryCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Leadership Skills",
+                "description": "Assesses leadership and management capabilities"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The category has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "name": "Leadership Skills",
+                  "description": "Assesses leadership and management capabilities",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": null,
+                  "updated_at": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Category"],
+        "summary": "Get all categories",
+        "description": "Retrieves a list of all categories",
+        "operationId": "categoryFindAll",
+        "responses": {
+          "200": {
+            "description": "List of categories",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "name": "Leadership Skills",
+                    "description": "Assesses leadership and management capabilities",
+                    "created_by": 1,
+                    "created_at": "2026-06-01T08:00:00.000Z",
+                    "updated_by": 1,
+                    "updated_at": "2026-06-10T12:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/category/{id}": {
+      "get": {
+        "tags": ["Category"],
+        "summary": "Get a category by ID",
+        "description": "Retrieves a single category by its UUID",
+        "operationId": "categoryFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Category UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The category with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "name": "Leadership Skills",
+                  "description": "Assesses leadership and management capabilities",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Category"],
+        "summary": "Update a category",
+        "description": "Updates an existing category by its UUID",
+        "operationId": "categoryUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Category UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Advanced Leadership Skills",
+                "description": "Updated description for leadership assessment"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The category has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440000",
+                  "name": "Advanced Leadership Skills",
+                  "description": "Updated description for leadership assessment",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Category"],
+        "summary": "Delete a category",
+        "description": "Deletes a category by its UUID (soft delete)",
+        "operationId": "categoryDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Category UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440000"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The category has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/classification-rule": {
+      "post": {
+        "tags": ["Classification Rule"],
+        "summary": "Create a classification rule",
+        "description": "Creates a new classification rule with score range and label",
+        "operationId": "classificationRuleCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                "label": "Major",
+                "min_score": 31,
+                "max_score": 50,
+                "is_active": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The classification rule has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                  "label": "Major",
+                  "min_score": 31,
+                  "max_score": 50,
+                  "is_active": true,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "created_by": 1,
+                  "updated_at": null,
+                  "updated_by": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Classification Rule"],
+        "summary": "Get all classification rules",
+        "description": "Retrieves a list of all classification rules",
+        "operationId": "classificationRuleFindAll",
+        "responses": {
+          "200": {
+            "description": "List of classification rules",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                    "label": "Major",
+                    "min_score": 31,
+                    "max_score": 50,
+                    "is_active": true,
+                    "created_at": "2026-06-01T08:00:00.000Z",
+                    "created_by": 1,
+                    "updated_at": "2026-06-10T12:00:00.000Z",
+                    "updated_by": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/classification-rule/{id}": {
+      "get": {
+        "tags": ["Classification Rule"],
+        "summary": "Get a classification rule by ID",
+        "description": "Retrieves a single classification rule by its UUID",
+        "operationId": "classificationRuleFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Classification Rule UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The classification rule with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                  "label": "Major",
+                  "min_score": 31,
+                  "max_score": 50,
+                  "is_active": true,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "created_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z",
+                  "updated_by": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Classification Rule"],
+        "summary": "Update a classification rule",
+        "description": "Updates an existing classification rule by its UUID",
+        "operationId": "classificationRuleUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Classification Rule UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "label": "Minor",
+                "min_score": 11,
+                "max_score": 20,
+                "is_active": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The classification rule has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                  "label": "Minor",
+                  "min_score": 11,
+                  "max_score": 20,
+                  "is_active": false,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "created_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z",
+                  "updated_by": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Classification Rule"],
+        "summary": "Delete a classification rule",
+        "description": "Deletes a classification rule by its UUID (soft delete)",
+        "operationId": "classificationRuleDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Classification Rule UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The classification rule has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/employee": {
+      "post": {
+        "tags": ["Employee"],
+        "summary": "Create a new employee",
+        "description": "Creates a new employee record",
+        "operationId": "employeeCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "employee_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                "employee_id": 12345,
+                "employee_code": "EMP001",
+                "email": "john.doe@example.com",
+                "title_th": "นาย",
+                "firstname": "John",
+                "middlename": "A",
+                "lastname": "Doe",
+                "title_en": "Mr.",
+                "firstname_en": "John",
+                "lastname_en": "Doe",
+                "institute_id": 1,
+                "department_id": 2,
+                "position_type": 3,
+                "position_special": 4,
+                "education_level": 5,
+                "mobile": "0812345678",
+                "work_phone": "0212345678",
+                "is_active": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The employee has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "employee_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                  "employee_id": 12345,
+                  "employee_code": "EMP001",
+                  "email": "john.doe@example.com",
+                  "title_th": "นาย",
+                  "firstname": "John",
+                  "middlename": "A",
+                  "lastname": "Doe",
+                  "title_en": "Mr.",
+                  "firstname_en": "John",
+                  "lastname_en": "Doe",
+                  "institute_id": 1,
+                  "department_id": 2,
+                  "position_type": 3,
+                  "position_special": 4,
+                  "education_level": 5,
+                  "mobile": "0812345678",
+                  "work_phone": "0212345678",
+                  "is_active": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Employee"],
+        "summary": "Get all employees",
+        "description": "Retrieves a list of all employees",
+        "operationId": "employeeFindAll",
+        "responses": {
+          "200": {
+            "description": "List of employees",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": 1,
+                    "employee_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                    "employee_id": 12345,
+                    "employee_code": "EMP001",
+                    "email": "john.doe@example.com",
+                    "title_th": "นาย",
+                    "firstname": "John",
+                    "middlename": "A",
+                    "lastname": "Doe",
+                    "title_en": "Mr.",
+                    "firstname_en": "John",
+                    "lastname_en": "Doe",
+                    "institute_id": 1,
+                    "department_id": 2,
+                    "position_type": 3,
+                    "position_special": 4,
+                    "last_login_at": "2026-06-15T08:00:00.000Z",
+                    "last_seen_at": "2026-06-15T08:30:00.000Z",
+                    "education_level": 5,
+                    "mobile": "0812345678",
+                    "work_phone": "0212345678",
+                    "synced_at": "2026-06-15T07:00:00.000Z",
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "updated_at": "2026-06-15T08:30:00.000Z",
+                    "is_active": 1
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/employee/{id}": {
+      "get": {
+        "tags": ["Employee"],
+        "summary": "Get an employee by ID",
+        "description": "Retrieves a single employee by their numeric ID",
+        "operationId": "employeeFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Employee numeric ID",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employee with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "employee_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                  "employee_id": 12345,
+                  "employee_code": "EMP001",
+                  "email": "john.doe@example.com",
+                  "title_th": "นาย",
+                  "firstname": "John",
+                  "middlename": "A",
+                  "lastname": "Doe",
+                  "title_en": "Mr.",
+                  "firstname_en": "John",
+                  "lastname_en": "Doe",
+                  "institute_id": 1,
+                  "department_id": 2,
+                  "position_type": 3,
+                  "position_special": 4,
+                  "last_login_at": "2026-06-15T08:00:00.000Z",
+                  "last_seen_at": "2026-06-15T08:30:00.000Z",
+                  "education_level": 5,
+                  "mobile": "0812345678",
+                  "work_phone": "0212345678",
+                  "synced_at": "2026-06-15T07:00:00.000Z",
+                  "created_at": "2026-01-01T00:00:00.000Z",
+                  "updated_at": "2026-06-15T08:30:00.000Z",
+                  "is_active": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Employee"],
+        "summary": "Update an employee",
+        "description": "Updates an existing employee by their ID",
+        "operationId": "employeeUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Employee numeric ID",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "email": "jane.doe@example.com",
+                "firstname": "Jane",
+                "lastname": "Doe",
+                "mobile": "0898765432"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The employee has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": 1,
+                  "employee_uuid": "550e8400-e29b-41d4-a716-446655440000",
+                  "employee_id": 12345,
+                  "employee_code": "EMP001",
+                  "email": "jane.doe@example.com",
+                  "title_th": "นาย",
+                  "firstname": "Jane",
+                  "middlename": "A",
+                  "lastname": "Doe",
+                  "title_en": "Mr.",
+                  "firstname_en": "Jane",
+                  "lastname_en": "Doe",
+                  "institute_id": 1,
+                  "department_id": 2,
+                  "position_type": 3,
+                  "position_special": 4,
+                  "last_login_at": "2026-06-15T08:00:00.000Z",
+                  "last_seen_at": "2026-06-15T08:30:00.000Z",
+                  "education_level": 5,
+                  "mobile": "0898765432",
+                  "work_phone": "0212345678",
+                  "synced_at": "2026-06-15T07:00:00.000Z",
+                  "created_at": "2026-01-01T00:00:00.000Z",
+                  "updated_at": "2026-06-15T08:30:00.000Z",
+                  "is_active": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Employee"],
+        "summary": "Delete an employee",
+        "description": "Deletes an employee by their ID (soft delete)",
+        "operationId": "employeeDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Employee numeric ID",
+            "schema": {
+              "type": "integer",
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The employee has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/question": {
+      "post": {
+        "tags": ["Question"],
+        "summary": "Create a new question",
+        "description": "Creates a new question associated with a questionnaire and category",
+        "operationId": "questionCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                "category_id": "550e8400-e29b-41d4-a716-446655440000",
+                "question_text": "How would you rate your team collaboration skills?",
+                "order_no": 1,
+                "is_required": true,
+                "weight": 3
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The question has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "question_text": "How would you rate your team collaboration skills?",
+                  "order_no": 1,
+                  "is_required": true,
+                  "weight": 3,
+                  "questionnaire": "550e8400-e29b-41d4-a716-446655440001",
+                  "category": "550e8400-e29b-41d4-a716-446655440000",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": null,
+                  "updated_at": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Question"],
+        "summary": "Get all questions",
+        "description": "Retrieves a list of all questions",
+        "operationId": "questionFindAll",
+        "responses": {
+          "200": {
+            "description": "List of questions",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "question_text": "How would you rate your team collaboration skills?",
+                    "order_no": 1,
+                    "is_required": true,
+                    "weight": 3,
+                    "questionnaire": "550e8400-e29b-41d4-a716-446655440001",
+                    "category": "550e8400-e29b-41d4-a716-446655440000",
+                    "created_by": 1,
+                    "created_at": "2026-06-01T08:00:00.000Z",
+                    "updated_by": 1,
+                    "updated_at": "2026-06-10T12:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/question/{id}": {
+      "get": {
+        "tags": ["Question"],
+        "summary": "Get a question by ID",
+        "description": "Retrieves a single question by its UUID",
+        "operationId": "questionFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Question UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The question with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "question_text": "How would you rate your team collaboration skills?",
+                  "order_no": 1,
+                  "is_required": true,
+                  "weight": 3,
+                  "questionnaire": "550e8400-e29b-41d4-a716-446655440001",
+                  "category": "550e8400-e29b-41d4-a716-446655440000",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Question"],
+        "summary": "Update a question",
+        "description": "Updates an existing question by its UUID",
+        "operationId": "questionUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Question UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "question_text": "How would you rate your problem-solving skills?",
+                "order_no": 2,
+                "weight": 5
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The question has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                  "question_text": "How would you rate your problem-solving skills?",
+                  "order_no": 2,
+                  "is_required": true,
+                  "weight": 5,
+                  "questionnaire": "550e8400-e29b-41d4-a716-446655440001",
+                  "category": "550e8400-e29b-41d4-a716-446655440000",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Question"],
+        "summary": "Delete a question",
+        "description": "Deletes a question by its UUID (soft delete)",
+        "operationId": "questionDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Question UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The question has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/questionnaire": {
+      "post": {
+        "tags": ["Questionnaire"],
+        "summary": "Create a new questionnaire",
+        "description": "Creates a new questionnaire",
+        "operationId": "questionnaireCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "title": "Employee Satisfaction Survey 2026",
+                "description": "Annual survey to measure employee satisfaction",
+                "status_id": "550e8400-e29b-41d4-a716-446655440002",
+                "open_date": "2026-07-01T00:00:00.000Z",
+                "close_date": "2026-07-31T23:59:59.000Z",
+                "created_by": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The questionnaire has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440001",
+                  "title": "Employee Satisfaction Survey 2026",
+                  "description": "Annual survey to measure employee satisfaction",
+                  "status": "550e8400-e29b-41d4-a716-446655440002",
+                  "open_date": "2026-07-01T00:00:00.000Z",
+                  "close_date": "2026-07-31T23:59:59.000Z",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": null,
+                  "updated_at": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Questionnaire"],
+        "summary": "Get all questionnaires",
+        "description": "Retrieves a list of all questionnaires",
+        "operationId": "questionnaireFindAll",
+        "responses": {
+          "200": {
+            "description": "List of questionnaires",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "550e8400-e29b-41d4-a716-446655440001",
+                    "title": "Employee Satisfaction Survey 2026",
+                    "description": "Annual survey to measure employee satisfaction",
+                    "status": "550e8400-e29b-41d4-a716-446655440002",
+                    "open_date": "2026-07-01T00:00:00.000Z",
+                    "close_date": "2026-07-31T23:59:59.000Z",
+                    "created_by": 1,
+                    "created_at": "2026-06-01T08:00:00.000Z",
+                    "updated_by": 1,
+                    "updated_at": "2026-06-10T12:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/questionnaire/{id}": {
+      "get": {
+        "tags": ["Questionnaire"],
+        "summary": "Get a questionnaire by ID",
+        "description": "Retrieves a single questionnaire by its UUID",
+        "operationId": "questionnaireFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Questionnaire UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The questionnaire with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440001",
+                  "title": "Employee Satisfaction Survey 2026",
+                  "description": "Annual survey to measure employee satisfaction",
+                  "status": "550e8400-e29b-41d4-a716-446655440002",
+                  "open_date": "2026-07-01T00:00:00.000Z",
+                  "close_date": "2026-07-31T23:59:59.000Z",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Questionnaire"],
+        "summary": "Update a questionnaire",
+        "description": "Updates an existing questionnaire by its UUID",
+        "operationId": "questionnaireUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Questionnaire UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440001"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "title": "Updated Employee Satisfaction Survey 2026",
+                "description": "Updated description",
+                "close_date": "2026-08-15T23:59:59.000Z"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The questionnaire has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440001",
+                  "title": "Updated Employee Satisfaction Survey 2026",
+                  "description": "Updated description",
+                  "status": "550e8400-e29b-41d4-a716-446655440002",
+                  "open_date": "2026-07-01T00:00:00.000Z",
+                  "close_date": "2026-08-15T23:59:59.000Z",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Questionnaire"],
+        "summary": "Delete a questionnaire",
+        "description": "Deletes a questionnaire by its UUID (soft delete)",
+        "operationId": "questionnaireDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Questionnaire UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The questionnaire has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/results/search": {
+      "post": {
+        "tags": ["Result"],
+        "summary": "Search results",
+        "description": "Search and filter assessment results with pagination and sorting",
+        "operationId": "resultSearch",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "filter": {
+                  "questionnaireId": ["550e8400-e29b-41d4-a716-446655440001"],
+                  "categoryId": ["550e8400-e29b-41d4-a716-446655440000"],
+                  "classificationId": ["a1b2c3d4-e5f6-7890-abcd-ef1234567890"],
+                  "startDate": "2026-06-01",
+                  "endDate": "2026-06-30"
+                },
+                "pagination": {
+                  "page": 1,
+                  "limit": 10
+                },
+                "sort": {
+                  "field": "percentage",
+                  "order": "DESC"
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Search results matching the criteria",
+            "content": {
+              "application/json": {
+                "example": {
+                  "data": [
+                    {
+                      "id": "r1",
+                      "rawTotalScore": 7,
+                      "percentage": 70,
+                      "classification": "Medium",
+                      "calculated_at": "2026-06-15T10:30:00.000Z",
+                      "submission": {
+                        "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                        "anonymousSessionId": "session-abc-123",
+                        "submitted_at": "2026-06-15T10:00:00.000Z",
+                        "questionnaire": {
+                          "id": "550e8400-e29b-41d4-a716-446655440001",
+                          "title": "Employee Satisfaction Survey 2026"
+                        }
+                      },
+                      "category": {
+                        "id": "550e8400-e29b-41d4-a716-446655440000",
+                        "name": "Leadership Skills"
+                      },
+                      "classificationRule": {
+                        "id": "rule1",
+                        "label": "Medium",
+                        "min_score": 10,
+                        "max_score": 30,
+                        "is_active": true
+                      }
+                    }
+                  ],
+                  "total": 1,
+                  "page": 1,
+                  "limit": 10
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/results/delete-many": {
+      "post": {
+        "tags": ["Result"],
+        "summary": "Delete multiple results",
+        "description": "Delete multiple results by IDs or by filter criteria",
+        "operationId": "resultDeleteMany",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "mode": "selected",
+                "resultIds": ["r1", "r2", "r3"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Results have been deleted"
+          }
+        }
+      }
+    },
+    "/results/export": {
+      "post": {
+        "tags": ["Result"],
+        "summary": "Export results",
+        "description": "Export results to CSV, Excel, or PDF format",
+        "operationId": "resultExport",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "mode": "filter",
+                "format": "excel",
+                "filters": {
+                  "questionnaireId": ["550e8400-e29b-41d4-a716-446655440001"]
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The exported file (downloadable)"
+          }
+        }
+      }
+    },
+    "/status": {
+      "post": {
+        "tags": ["Status"],
+        "summary": "Create a new status",
+        "description": "Creates a new status",
+        "operationId": "statusCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Active",
+                "description": "Questionnaire is currently active and open for submissions"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The status has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440002",
+                  "name": "Active",
+                  "description": "Questionnaire is currently active and open for submissions",
+                  "created_by": 1,
+                  "created_at": "2026-06-01T08:00:00.000Z",
+                  "updated_by": null,
+                  "updated_at": null
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Status"],
+        "summary": "Get all statuses",
+        "description": "Retrieves a list of all statuses",
+        "operationId": "statusFindAll",
+        "responses": {
+          "200": {
+            "description": "List of statuses",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "550e8400-e29b-41d4-a716-446655440002",
+                    "name": "Active",
+                    "description": "Questionnaire is currently active and open for submissions",
+                    "created_by": 1,
+                    "created_at": "2026-01-01T00:00:00.000Z",
+                    "updated_by": 1,
+                    "updated_at": "2026-06-01T08:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/status/{id}": {
+      "get": {
+        "tags": ["Status"],
+        "summary": "Get a status by ID",
+        "description": "Retrieves a single status by its UUID",
+        "operationId": "statusFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Status UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440002"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The status with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440002",
+                  "name": "Active",
+                  "description": "Questionnaire is currently active and open for submissions",
+                  "created_by": 1,
+                  "created_at": "2026-01-01T00:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-01T08:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Status"],
+        "summary": "Update a status",
+        "description": "Updates an existing status by its UUID",
+        "operationId": "statusUpdate",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Status UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440002"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "name": "Inactive",
+                "description": "Questionnaire is closed"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The status has been successfully updated",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "550e8400-e29b-41d4-a716-446655440002",
+                  "name": "Inactive",
+                  "description": "Questionnaire is closed",
+                  "created_by": 1,
+                  "created_at": "2026-01-01T00:00:00.000Z",
+                  "updated_by": 1,
+                  "updated_at": "2026-06-10T12:00:00.000Z"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Status"],
+        "summary": "Delete a status",
+        "description": "Deletes a status by its UUID (soft delete)",
+        "operationId": "statusDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Status UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440002"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The status has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/submission": {
+      "post": {
+        "tags": ["Submission"],
+        "summary": "Create a new submission",
+        "description": "Creates a new anonymous submission with answers",
+        "operationId": "submissionCreate",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                "fingerprint": "abc123def456",
+                "answers": [
+                  {
+                    "question_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                    "selected_value": 4
+                  },
+                  {
+                    "question_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                    "selected_value": 5
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The submission has been successfully created",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                  "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                  "anonymous_session_id": "session-abc-123",
+                  "submitted_at": "2026-06-15T10:00:00.000Z",
+                  "answers": [
+                    {
+                      "question_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                      "question_text": "How would you rate your team collaboration skills?",
+                      "selected_value": 4
+                    },
+                    {
+                      "question_id": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
+                      "question_text": "How would you rate your communication skills?",
+                      "selected_value": 5
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["Submission"],
+        "summary": "Get all submissions",
+        "description": "Retrieves a list of all submissions",
+        "operationId": "submissionFindAll",
+        "responses": {
+          "200": {
+            "description": "List of submissions",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                    "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                    "anonymous_session_id": "session-abc-123",
+                    "submitted_at": "2026-06-15T10:00:00.000Z",
+                    "answers": [
+                      {
+                        "question_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "question_text": "How would you rate your team collaboration skills?",
+                        "selected_value": 4
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submission/{id}": {
+      "get": {
+        "tags": ["Submission"],
+        "summary": "Get a submission by ID",
+        "description": "Retrieves a single submission by its UUID",
+        "operationId": "submissionFindOne",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Submission UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "f1e2d3c4-b5a6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The submission with the given ID",
+            "content": {
+              "application/json": {
+                "example": {
+                  "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                  "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                  "anonymous_session_id": "session-abc-123",
+                  "submitted_at": "2026-06-15T10:00:00.000Z",
+                  "answers": [
+                    {
+                      "question_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                      "question_text": "How would you rate your team collaboration skills?",
+                      "selected_value": 4
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Submission"],
+        "summary": "Delete a submission",
+        "description": "Deletes a submission by its UUID (soft delete)",
+        "operationId": "submissionDelete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Submission UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "f1e2d3c4-b5a6-7890-abcd-ef1234567890"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The submission has been successfully deleted"
+          }
+        }
+      }
+    },
+    "/submission/questionnaire/{questionnaireId}": {
+      "get": {
+        "tags": ["Submission"],
+        "summary": "Get submissions by questionnaire",
+        "description": "Retrieves all submissions for a given questionnaire",
+        "operationId": "submissionFindByQuestionnaire",
+        "parameters": [
+          {
+            "name": "questionnaireId",
+            "in": "path",
+            "required": true,
+            "description": "Questionnaire UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440001"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of submissions for the questionnaire",
+            "content": {
+              "application/json": {
+                "example": [
+                  {
+                    "id": "f1e2d3c4-b5a6-7890-abcd-ef1234567890",
+                    "questionnaire_id": "550e8400-e29b-41d4-a716-446655440001",
+                    "anonymous_session_id": "session-abc-123",
+                    "submitted_at": "2026-06-15T10:00:00.000Z",
+                    "answers": [
+                      {
+                        "question_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+                        "question_text": "How would you rate your team collaboration skills?",
+                        "selected_value": 4
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
