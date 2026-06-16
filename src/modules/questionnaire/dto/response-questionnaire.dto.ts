@@ -1,4 +1,5 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
+import { StatusResponseDto } from 'src/modules/status/dto/response-status.dto';
 
 export class QuestionnaireResponseDto {
   id!: string;
@@ -7,8 +8,8 @@ export class QuestionnaireResponseDto {
 
   description?: string;
 
-  @Transform(({ value }) => value?.id)
-  status!: any;
+  @Type(() => StatusResponseDto)
+  status!: StatusResponseDto;
 
   open_date?: Date;
 

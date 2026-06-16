@@ -10,6 +10,7 @@ export class CreateCategoryDto {
   description?: string;
 
   @IsInt()
+  @IsOptional()
   created_by?: number;
 
 

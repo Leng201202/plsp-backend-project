@@ -13,7 +13,6 @@ import { Category } from '../../category/entity/category.entity';
 import { Employee } from '../../employee/entity/employee.entity';
 
 @Entity('classification_rules')
-@Unique(['category', 'label']) // prevent duplicate labels per category
 export class ClassificationRule {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

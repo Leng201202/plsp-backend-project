@@ -27,7 +27,7 @@ export class QuestionService {
         ...rest,
         questionnaire: { id: questionnaire_id },
         category: { id: category_id },
-        created_by: { id: created_by },
+        created_by: { id: employeeId },
       } as DeepPartial<Question>);
       const saved = await this.questionRepository.save(question as Question);
       await this.audit.logSuccess({

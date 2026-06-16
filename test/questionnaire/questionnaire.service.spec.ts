@@ -42,7 +42,13 @@ describe('QuestionnaireService', () => {
         },
         {
           provide: getRepositoryToken(require('../../src/modules/status/entity/status.entity').Status),
-          useValue: {},
+          useValue: {
+            find: jest.fn().mockResolvedValue([
+              { id: 'status-uuid-2', name: 'Draft' },
+              { id: 'status-uuid-1', name: 'Open' },
+              { id: 'status-uuid-3', name: 'Close' },
+            ]),
+          },
         },
         {
           provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,

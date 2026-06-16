@@ -27,6 +27,6 @@ export class CreateQuestionDto {
   weight!: number;
 
   @IsInt()
-  created_by!: number;
-
+  @IsOptional()
+  created_by?: number;
 }

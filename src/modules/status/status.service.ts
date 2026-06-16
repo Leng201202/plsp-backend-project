@@ -25,7 +25,7 @@ export class StatusService {
       const { created_by, ...rest } = dto;
       const status = this.statusRepository.create({
         ...rest,
-        ...(created_by && { created_by: { id: created_by } }),
+        created_by: { id: created_by || employeeId },
       } as DeepPartial<Status>);
       const saved = await this.statusRepository.save(status as Status);
       await this.audit.logSuccess({ ...base, recordId: saved.id, details: { name: saved.name } });

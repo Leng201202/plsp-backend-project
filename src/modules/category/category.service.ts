@@ -25,7 +25,7 @@ export class CategoryService {
       const { created_by, ...rest } = dto;
       const category = this.categoryRepository.create({
         ...rest,
-        ...(created_by && { created_by: { id: created_by } }),
+        created_by: { id: created_by || employeeId },
       } as DeepPartial<Category>);
       const saved = await this.categoryRepository.save(category);
       await this.audit.logSuccess({ ...base, recordId: saved.id, details: { name: saved.name } });

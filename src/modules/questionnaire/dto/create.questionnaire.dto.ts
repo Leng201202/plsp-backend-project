@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsDateString,
   IsInt,
   IsOptional,
@@ -16,7 +17,8 @@ export class CreateQuestionnaireDto {
   description?: string;
 
   @IsUUID()
-  status_id!: string;
+  @IsOptional()
+  status_id?: string;
 
   @IsDateString()
   @IsOptional()
@@ -26,10 +28,15 @@ export class CreateQuestionnaireDto {
   @IsOptional()
   close_date?: Date;
 
-  @IsInt()
-  created_by!: number;
+  @IsBoolean()
+  @IsOptional()
+  is_allow_multi_submit?: boolean;
 
   @IsInt()
   @IsOptional()
-  updated_by!: number;
+  created_by?: number;
+
+  @IsInt()
+  @IsOptional()
+  updated_by?: number;
 }
