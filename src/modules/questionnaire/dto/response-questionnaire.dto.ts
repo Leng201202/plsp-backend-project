@@ -15,13 +15,27 @@ export class QuestionnaireResponseDto {
 
   close_date?: Date;
 
-  @Transform(({ value }) => value?.id)
-  created_by!: any;
+  @Transform(({ value }) => {
+    if (!value) return 'Unknown';
+    if (typeof value === 'string') return value;
+    const parts: string[] = [];
+    if (value.firstname) parts.push(value.firstname);
+    if (value.lastname) parts.push(value.lastname);
+    return parts.length > 0 ? parts.join(' ') : value?.id ?? 'Unknown';
+  })
+  created_by!: string;
 
   created_at!: Date;
 
-  @Transform(({ value }) => value?.id)
-  updated_by?: any;
+  @Transform(({ value }) => {
+    if (!value) return undefined;
+    if (typeof value === 'string') return value;
+    const parts: string[] = [];
+    if (value.firstname) parts.push(value.firstname);
+    if (value.lastname) parts.push(value.lastname);
+    return parts.length > 0 ? parts.join(' ') : value?.id ?? 'Unknown';
+  })
+  updated_by?: string;
 
   updated_at?: Date;
 }

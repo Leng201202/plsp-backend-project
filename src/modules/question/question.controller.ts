@@ -21,9 +21,9 @@ export class QuestionController {
     return this.questionService.create(createQuestionDto, getCurrentUser);
   }
 
-  @Get()
-  findAll() {
-    return this.questionService.findAll();
+  @Get('by-questionnaire/:questionnaireId')
+  findByQuestionnaire(@Param('questionnaireId') questionnaireId: string) {
+    return this.questionService.findByQuestionnaire(questionnaireId);
   }
 
   @Get(':id')
@@ -36,11 +36,11 @@ export class QuestionController {
     @Param('id') id: string,
     @Body() updateQuestionDto: UpdateQuestionDto,
   ) {
-    return this.questionService.update(id, updateQuestionDto,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
+    return this.questionService.update(id, updateQuestionDto, getCurrentUser);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.questionService.delete(id,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
+    return this.questionService.delete(id, getCurrentUser);
   }
 }

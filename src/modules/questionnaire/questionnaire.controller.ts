@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Patch,
@@ -11,6 +10,7 @@ import { QuestionnaireService } from './questionnaire.service';
 import { CreateQuestionnaireDto } from './dto/create.questionnaire.dto';
 import { UpdateQuestionnaireDto } from './dto/update.questionnaire.dto';
 import { getCurrentUser } from 'src/common/middleware/curr_user';
+import { QuestionnaireBulkActionDto } from './dto/questionnaire-bulk-action.dto';
 
 @Controller('questionnaire')
 export class QuestionnaireController {
@@ -18,7 +18,7 @@ export class QuestionnaireController {
 
   @Post()
   create(@Body() dto: CreateQuestionnaireDto) {
-    return this.questionnaireService.create(dto,getCurrentUser);
+    return this.questionnaireService.create(dto, getCurrentUser);
   }
 
   @Get()
@@ -33,11 +33,11 @@ export class QuestionnaireController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateQuestionnaireDto) {
-    return this.questionnaireService.update(id, dto,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
+    return this.questionnaireService.update(id, dto, getCurrentUser);
   }
 
-  @Delete(':id')
-  delete(@Param('id') id: string) {
-    return this.questionnaireService.delete(id,getCurrentUser);// Hardcoded user ID for demonstration, replace with actual user retrieval logic
+  @Post('delete-many')
+  deleteMany(@Body() dto: QuestionnaireBulkActionDto) {
+    return this.questionnaireService.deleteMany(dto, getCurrentUser);
   }
 }

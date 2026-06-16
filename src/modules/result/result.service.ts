@@ -95,8 +95,8 @@ export class ResultService {
     }
 
 
-    async deleteMany(dto: ResultBulkActionDto) {
-        const employeeId = dto.deletedBy ?? 0;
+    async deleteMany(dto: ResultBulkActionDto,currentUser: number) {
+        const employeeId = dto.deletedBy ?? currentUser;
         const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.RESULT };
         try {
             const resultsIds= await this.resolveSelectedResultsIds(dto);

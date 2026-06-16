@@ -4,6 +4,7 @@ import { ResultSearchDto } from './dto/result-search.dto';
 import { ResultBulkActionDto } from './dto/result-bulk-action.dto';
 import { ResultExportDto } from './dto/result-export.dto';
 import type { Response } from 'express';
+import { getCurrentUser } from 'src/common/middleware/curr_user';
 
 @Controller('results')
 export class ResultController {
@@ -18,7 +19,7 @@ export class ResultController {
 
     @Post('delete-many')
     deleteMany(@Body() dto: ResultBulkActionDto){
-        return this.resultService.deleteMany(dto);
+        return this.resultService.deleteMany(dto,getCurrentUser);
     }
 
     @Post('export')

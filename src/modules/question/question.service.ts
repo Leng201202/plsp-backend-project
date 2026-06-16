@@ -30,29 +30,39 @@ export class QuestionService {
         created_by: { id: employeeId },
       } as DeepPartial<Question>);
       const saved = await this.questionRepository.save(question as Question);
+      // Reload with relations
+      const reloaded = await this.questionRepository.findOne({
+        where: { id: saved.id, deleted_at: IsNull() },
+        relations: { questionnaire: true, category: true, created_by: true, updated_by: true },
+      });
+      if (!reloaded) throw new QuestionNotFoundException();
       await this.audit.logSuccess({
         ...base,
         recordId: saved.id,
         details: { question_text: saved.question_text, questionnaire_id, category_id },
       });
-      return plainToInstance(QuestionResponseDto, saved);
+      return plainToInstance(QuestionResponseDto, reloaded);
     } catch (error) {
       await this.audit.logFailure({ ...base, details: { question_text: dto.question_text } }, error);
       throw error;
     }
   }
 
-  async findAll() {
+  async findByQuestionnaire(questionnaireId: string) {
     return plainToInstance(
       QuestionResponseDto,
       await this.questionRepository.find({
-        where: { deleted_at: IsNull() },
+        where: { 
+          deleted_at: IsNull(),
+          questionnaire: { id: questionnaireId }
+        },
         relations: {
           questionnaire: true,
           category: true,
           created_by: true,
           updated_by: true,
         },
+        order: { order_no: 'ASC' }
       }),
     );
   }
@@ -84,9 +94,15 @@ export class QuestionService {
       if (category_id) updateData.category = { id: category_id };
       if (created_by) updateData.created_by = { id: created_by };
       if (employeeId) updateData.updated_by = { id: employeeId };
-      const saved = await this.questionRepository.save(this.questionRepository.merge(question, updateData));
-      await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
-      return plainToInstance(QuestionResponseDto, saved);
+      await this.questionRepository.save(this.questionRepository.merge(question, updateData));
+      // Reload with relations
+      const reloaded = await this.questionRepository.findOne({
+        where: { id, deleted_at: IsNull() },
+        relations: { questionnaire: true, category: true, created_by: true, updated_by: true },
+      });
+      if (!reloaded) throw new QuestionNotFoundException();
+      await this.audit.logSuccess({ ...base, details: { old: previous, new: reloaded } });
+      return plainToInstance(QuestionResponseDto, reloaded);
     } catch (error) {
       await this.audit.logFailure({ ...base, details: { old: previous, new: dto } }, error);
       throw error;

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Questionnaire } from './entity/questionnaire.entity';
-import { DeepPartial, IsNull, Repository } from 'typeorm';
+import { DeepPartial, In, IsNull, Repository } from 'typeorm';
 import { CreateQuestionnaireDto } from './dto/create.questionnaire.dto';
 import { plainToInstance } from 'class-transformer';
 import { QuestionnaireResponseDto } from './dto/response-questionnaire.dto';
@@ -11,6 +11,7 @@ import { Employee } from '../employee/entity/employee.entity';
 import { Status } from '../status/entity/status.entity';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
+import { QuestionnaireBulkActionDto, QuestionnaireSelectionMode } from './dto/questionnaire-bulk-action.dto';
 
 @Injectable()
 export class QuestionnaireService {
@@ -48,14 +49,21 @@ export class QuestionnaireService {
 
       // Resolve status dynamically based on dates before saving
       const resolved = this.resolveDynamicStatus(questionnaire as Questionnaire, statusMap);
-      const saved = await this.questionnaireRepository.save(resolved);
+      await this.questionnaireRepository.save(resolved);
+
+      // Reload with full relations
+      const savedWithRelations = await this.questionnaireRepository.findOne({
+        where: { id: resolved.id, deleted_at: IsNull() },
+        relations: { status: true, created_by: true, updated_by: true },
+      });
+      if (!savedWithRelations) throw new QuestionnaireNotFoundException();
 
       await this.audit.logSuccess({
         ...base,
-        recordId: saved.id,
-        details: { title: saved.title },
+        recordId: savedWithRelations.id,
+        details: { title: savedWithRelations.title },
       });
-      return plainToInstance(QuestionnaireResponseDto, saved);
+      return plainToInstance(QuestionnaireResponseDto, savedWithRelations);
     } catch (error) {
       await this.audit.logFailure({ ...base, details: { title: dto.title } }, error);
       throw error;
@@ -123,11 +131,18 @@ export class QuestionnaireService {
       
       // Resolve status dynamically based on dates before saving
       const resolved = this.resolveDynamicStatus(merged, statusMap);
-      const saved = await this.questionnaireRepository.save(resolved);
+      await this.questionnaireRepository.save(resolved);
+
+      // Reload with full relations
+      const savedWithRelations = await this.questionnaireRepository.findOne({
+        where: { id, deleted_at: IsNull() },
+        relations: { status: true, created_by: true, updated_by: true },
+      });
+      if (!savedWithRelations) throw new QuestionnaireNotFoundException();
 
       // Detect OPEN / CLOSE status change and emit additional audit action
-      if (saved.status?.id !== previous.status?.id) {
-        const newStatus = saved.status;
+      if (savedWithRelations.status?.id !== previous.status?.id) {
+        const newStatus = savedWithRelations.status;
         if (newStatus) {
           const statusName = newStatus.name?.toLowerCase();
           if (statusName === 'open') {
@@ -136,7 +151,7 @@ export class QuestionnaireService {
               action: AuditAction.OPEN,
               module: AuditModule.QUESTIONNAIRE,
               recordId: id,
-              details: { title: saved.title },
+              details: { title: savedWithRelations.title },
             });
           } else if (statusName === 'close' || statusName === 'closed') {
             await this.audit.logSuccess({
@@ -144,18 +159,73 @@ export class QuestionnaireService {
               action: AuditAction.CLOSE,
               module: AuditModule.QUESTIONNAIRE,
               recordId: id,
-              details: { title: saved.title },
+              details: { title: savedWithRelations.title },
             });
           }
         }
       }
 
-      await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
-      return plainToInstance(QuestionnaireResponseDto, saved);
+      await this.audit.logSuccess({ ...base, details: { old: previous, new: savedWithRelations } });
+      return plainToInstance(QuestionnaireResponseDto, savedWithRelations);
     } catch (error) {
       await this.audit.logFailure({ ...base, details: { old: previous, new: dto } }, error);
       throw error;
     }
+  }
+
+  async deleteMany(dto: QuestionnaireBulkActionDto, currentUser: number) {
+    const employeeId = dto.deletedBy ?? currentUser;
+    const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.QUESTIONNAIRE };
+    try {
+      const questionnaireIds = await this.resolveSelectedQuestionnaireIds(dto);
+      
+      if (!questionnaireIds.length) {
+        throw new Error('No questionnaires to delete.');
+      }
+      
+      if (dto.deletedBy) {
+        await this.questionnaireRepository.update(
+          { id: In(questionnaireIds) },
+          {
+            deleted_by: { id: dto.deletedBy } as Employee
+          }
+        );
+      }
+      
+      await this.questionnaireRepository.softDelete(questionnaireIds);
+      
+      await this.audit.logSuccess({
+        ...base,
+        details: { deletedCount: questionnaireIds.length, questionnaireIds }
+      });
+      
+      return {
+        success: true,
+        message: 'Questionnaires deleted successfully.',
+        deletedCount: questionnaireIds.length,
+      };
+    } catch (error) {
+      await this.audit.logFailure({ ...base, details: { mode: dto.mode } }, error);
+      throw error;
+    }
+  }
+  
+  private async resolveSelectedQuestionnaireIds(dto: QuestionnaireBulkActionDto): Promise<string[]> {
+    if (dto.mode === QuestionnaireSelectionMode.SELECTED) {
+      return dto.questionnaireIds ?? [];
+    }
+    
+    const qb = this.questionnaireRepository
+      .createQueryBuilder('questionnaire')
+      .select('questionnaire.id', 'id')
+      .where('questionnaire.deleted_at IS NULL');
+      
+    if (dto.excludeIds?.length) {
+      qb.andWhere('questionnaire.id NOT IN (:...excludeIds)', { excludeIds: dto.excludeIds });
+    }
+    
+    const rows = await qb.getRawMany<{id:string}>();
+    return rows.map(row => row.id);
   }
 
   async delete(id: string, employeeId: number) {
