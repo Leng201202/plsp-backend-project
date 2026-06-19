@@ -16,6 +16,7 @@ import { ResultExportService } from './export/result-export.service';
 import { ExportResultRow } from './export/interfaces/result-exporter.interface';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
 
 @Injectable()
 export class ResultService {
@@ -31,7 +32,8 @@ export class ResultService {
         @InjectRepository(ClassificationRule)
         private readonly classificationRuleRepository: Repository<ClassificationRule>,
         private readonly audit: AuditHelper,
-    ) {} 
+        private readonly redis: RedisService,
+    ) {}
 
     //Result-Service for Result Controller
 
@@ -311,15 +313,33 @@ export class ResultService {
         manager?: EntityManager,
     ):Promise<ClassificationRule | null>{
        const repo = manager ? manager.getRepository(ClassificationRule) : this.classificationRuleRepository;
-       return repo.findOne({
-            where: {
-                category:{
-                    id: categoryId,
-                },
-                is_active: true,
-                min_score: LessThanOrEqual(score),
-                max_score: MoreThanOrEqual(score),
-            },
-        });
+
+       if (manager) {
+         return repo.findOne({
+           where: {
+             category: { id: categoryId },
+             is_active: true,
+             min_score: LessThanOrEqual(score),
+             max_score: MoreThanOrEqual(score),
+           },
+         });
+       }
+
+       const rules = await this.redis.getOrSet(
+         CacheKeys.classificationRulesByCategory(categoryId),
+         () =>
+           repo.find({
+             where: {
+               category: { id: categoryId },
+               is_active: true,
+             },
+           }),
+       );
+
+       return (
+         rules.find(
+           (rule) => score >= Number(rule.min_score) && score <= Number(rule.max_score),
+         ) ?? null
+       );
     }
 }

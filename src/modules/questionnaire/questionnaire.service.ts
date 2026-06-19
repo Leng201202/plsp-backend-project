@@ -12,6 +12,7 @@ import { Status } from '../status/entity/status.entity';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
 import { QuestionnaireBulkActionDto, QuestionnaireSelectionMode } from './dto/questionnaire-bulk-action.dto';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
 
 @Injectable()
 export class QuestionnaireService {
@@ -21,6 +22,7 @@ export class QuestionnaireService {
     @InjectRepository(Status)
     private readonly statusRepository: Repository<Status>,
     private readonly audit: AuditHelper,
+    private readonly redis: RedisService,
   ) {}
 
   async create(dto: CreateQuestionnaireDto, employeeId: number) {
@@ -244,12 +246,14 @@ export class QuestionnaireService {
   }
 
   private async getStatusMap(): Promise<{ draft?: Status; open?: Status; close?: Status }> {
-    const statuses = await this.statusRepository.find();
-    return {
-      draft: statuses.find(s => s.name.toLowerCase() === 'draft'),
-      open: statuses.find(s => s.name.toLowerCase() === 'open'),
-      close: statuses.find(s => s.name.toLowerCase() === 'close' || s.name.toLowerCase() === 'closed'),
-    };
+    return this.redis.getOrSet(CacheKeys.statusMap(), async () => {
+      const statuses = await this.statusRepository.find();
+      return {
+        draft: statuses.find(s => s.name.toLowerCase() === 'draft'),
+        open: statuses.find(s => s.name.toLowerCase() === 'open'),
+        close: statuses.find(s => s.name.toLowerCase() === 'close' || s.name.toLowerCase() === 'closed'),
+      };
+    });
   }
 
   private resolveDynamicStatus(

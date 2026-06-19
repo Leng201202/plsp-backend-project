@@ -12,6 +12,7 @@ import { Employee } from '../employee/entity/employee.entity';
 import { Category } from '../category/entity/category.entity';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
 
 @Injectable()
 export class ClassificationRuleService {
@@ -19,6 +20,7 @@ export class ClassificationRuleService {
         @InjectRepository(ClassificationRule)
         private readonly classificationRuleRepository: Repository<ClassificationRule>,
         private readonly audit: AuditHelper,
+        private readonly redis: RedisService,
     ) {}
 
     async create(dto: CreateClassificationRuleDto, employeeId: number) {
@@ -40,6 +42,7 @@ export class ClassificationRuleService {
                 created_by: { id: employeeId },
             });
             const saved = await this.classificationRuleRepository.save(rule);
+            await this.invalidateCategoryCache(dto.category_id);
             await this.audit.logSuccess({
                 ...base,
                 recordId: saved.id,
@@ -105,6 +108,10 @@ export class ClassificationRuleService {
             rule.updated_by = { id: employeeId } as Employee;
 
             const saved = await this.classificationRuleRepository.save(rule);
+            await this.invalidateCategoryCache(categoryId);
+            if (previous.category?.id && previous.category.id !== categoryId) {
+                await this.invalidateCategoryCache(previous.category.id);
+            }
             await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
             return plainToInstance(ResponseClassificationRuleDto, saved, { excludeExtraneousValues: true });
         } catch (error) {
@@ -119,17 +126,26 @@ export class ClassificationRuleService {
         try {
             const rule = await this.classificationRuleRepository.findOne({
                 where: { id, deleted_at: IsNull() },
+                relations: { category: true },
             });
             if (!rule) throw new ClassificationRuleNotFoundException();
             ruleLabel = rule.label;
             rule.deleted_by = { id: employeeId } as Employee;
             await this.classificationRuleRepository.save(rule);
             await this.classificationRuleRepository.softDelete(id);
+            await this.invalidateCategoryCache(rule.category?.id);
             await this.audit.logSuccess({ ...base, details: { label: ruleLabel } });
             return { success: true, message: 'Classification rule deleted successfully' };
         } catch (error) {
             await this.audit.logFailure({ ...base, details: ruleLabel ? { label: ruleLabel } : {} }, error);
             throw error;
         }
+    }
+
+    private async invalidateCategoryCache(categoryId?: string): Promise<void> {
+        if (!categoryId) {
+            return;
+        }
+        await this.redis.del(CacheKeys.classificationRulesByCategory(categoryId));
     }
 }
