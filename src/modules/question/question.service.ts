@@ -10,6 +10,7 @@ import { QuestionNotFoundException } from 'src/common/exceptions/question.except
 import { Employee } from '../employee/entity/employee.entity';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
 
 @Injectable()
 export class QuestionService {
@@ -17,6 +18,7 @@ export class QuestionService {
     @InjectRepository(Question)
     private readonly questionRepository: Repository<Question>,
     private readonly audit: AuditHelper,
+    private readonly redis: RedisService,
   ) {}
 
   async create(dto: CreateQuestionDto, employeeId: number) {
@@ -36,6 +38,7 @@ export class QuestionService {
         relations: { questionnaire: true, category: true, created_by: true, updated_by: true },
       });
       if (!reloaded) throw new QuestionNotFoundException();
+      await this.invalidateQuestionnaireCache(questionnaire_id);
       await this.audit.logSuccess({
         ...base,
         recordId: saved.id,
@@ -49,21 +52,25 @@ export class QuestionService {
   }
 
   async findByQuestionnaire(questionnaireId: string) {
-    return plainToInstance(
-      QuestionResponseDto,
-      await this.questionRepository.find({
-        where: { 
-          deleted_at: IsNull(),
-          questionnaire: { id: questionnaireId }
-        },
-        relations: {
-          questionnaire: true,
-          category: true,
-          created_by: true,
-          updated_by: true,
-        },
-        order: { order_no: 'ASC' }
-      }),
+    return this.redis.getOrSet(
+      CacheKeys.questionsByQuestionnaire(questionnaireId),
+      async () =>
+        plainToInstance(
+          QuestionResponseDto,
+          await this.questionRepository.find({
+            where: {
+              deleted_at: IsNull(),
+              questionnaire: { id: questionnaireId },
+            },
+            relations: {
+              questionnaire: true,
+              category: true,
+              created_by: true,
+              updated_by: true,
+            },
+            order: { order_no: 'ASC' },
+          }),
+        ),
     );
   }
 
@@ -101,6 +108,9 @@ export class QuestionService {
         relations: { questionnaire: true, category: true, created_by: true, updated_by: true },
       });
       if (!reloaded) throw new QuestionNotFoundException();
+      await this.invalidateQuestionnaireCache(
+        questionnaire_id ?? reloaded.questionnaire?.id,
+      );
       await this.audit.logSuccess({ ...base, details: { old: previous, new: reloaded } });
       return plainToInstance(QuestionResponseDto, reloaded);
     } catch (error) {
@@ -113,17 +123,28 @@ export class QuestionService {
     const base = { employeeId, action: AuditAction.DELETE, module: AuditModule.QUESTION, recordId: id };
     let questionText = '';
     try {
-      const question = await this.questionRepository.findOne({ where: { id, deleted_at: IsNull() } });
+      const question = await this.questionRepository.findOne({
+        where: { id, deleted_at: IsNull() },
+        relations: { questionnaire: true },
+      });
       if (!question) throw new QuestionNotFoundException();
       questionText = question.question_text;
       question.deleted_by = { id: employeeId } as Employee;
       await this.questionRepository.save(question);
       await this.questionRepository.softDelete(id);
+      await this.invalidateQuestionnaireCache(question.questionnaire?.id);
       await this.audit.logSuccess({ ...base, details: { question_text: questionText } });
       return { message: 'Question deleted successfully', success: true };
     } catch (error) {
       await this.audit.logFailure({ ...base, details: questionText ? { question_text: questionText } : {} }, error);
       throw error;
     }
+  }
+
+  private async invalidateQuestionnaireCache(questionnaireId?: string): Promise<void> {
+    if (!questionnaireId) {
+      return;
+    }
+    await this.redis.del(CacheKeys.questionsByQuestionnaire(questionnaireId));
   }
 }

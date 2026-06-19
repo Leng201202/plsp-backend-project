@@ -14,6 +14,8 @@ import { Employee } from 'src/modules/employee/entity/employee.entity';
 import { ResultService } from 'src/modules/result/result.service';
 import { AuditHelper } from 'src/modules/audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from 'src/modules/audit-log/entity/audit-log.entity';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
+import { redisConfig } from 'src/config/redis.config';
 
 @Injectable()
 export class SubmissionService {
@@ -28,6 +30,7 @@ export class SubmissionService {
 
     private readonly dataSource: DataSource,
     private readonly audit: AuditHelper,
+    private readonly redis: RedisService,
   ) {}
 
   async create(dto: CreateSubmissionDto, userAgent: string) {
@@ -48,6 +51,17 @@ export class SubmissionService {
         userAgent,
       );
 
+      const sessionKey = CacheKeys.submissionSession(
+        dto.questionnaire_id,
+        anonymousSessionId,
+      );
+
+      if (await this.redis.exists(sessionKey)) {
+        throw new BadRequestException(
+          'Submission already exists for this session and questionnaire',
+        );
+      }
+
       const existing = await this.submissionRepository.findOne({
         where: {
           questionnaire: { id: dto.questionnaire_id },
@@ -56,6 +70,7 @@ export class SubmissionService {
       });
 
       if (existing) {
+        await this.redis.set(sessionKey, existing.id, redisConfig.sessionTtlSeconds);
         throw new BadRequestException(
           'Submission already exists for this session and questionnaire',
         );
@@ -87,6 +102,12 @@ export class SubmissionService {
           results,
         };
       });
+
+      await this.redis.set(
+        sessionKey,
+        txResult.submission_id,
+        redisConfig.sessionTtlSeconds,
+      );
 
       // Audit: CREATE submission
       await this.audit.logSuccess({

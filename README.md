@@ -1,98 +1,265 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# PLSP Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend API for the **PLSP (Perceptual Learning Style Preference Questionnaire)** system — a NestJS application that manages questionnaires, anonymous guest submissions, result calculation, reporting exports, and audit logging.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Tech stack
 
-## Description
+| Layer | Technology |
+|-------|------------|
+| Framework | NestJS 11 (Express) |
+| Language | TypeScript |
+| Database | MySQL 8 + TypeORM |
+| Cache | Redis 7 (via `ioredis`) |
+| API docs | Swagger UI (`/api-docs`) |
+| Validation | class-validator / class-transformer |
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Project structure
 
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+├── main.ts                 # Application entry point
+├── app.module.ts           # Root module
+├── config/                 # Environment-based configuration
+│   ├── typeorm.config.ts
+│   ├── redis.config.ts
+│   └── cors.config.ts
+├── common/                 # Shared utilities
+│   └── redis/              # Global Redis module
+│       ├── redis.ts        #   RedisService + CacheKeys
+│       └── redis.module.ts #   @Global module registration
+├── exceptions/
+├── interceptors/
+└── modules/                # Feature modules
+    ├── audit-log/
+    ├── category/
+    ├── classification/
+    ├── employee/
+    ├── question/
+    ├── questionnaire/
+    ├── result/
+    ├── status/
+    └── submission/
 ```
 
-## Compile and run the project
+## Prerequisites
+
+- **Node.js** 22 (matches Dockerfile)
+- **npm** 9+
+- **MySQL** 8.0
+- **Redis** 7 (optional — app gracefully falls back to MySQL if unavailable)
+- **Docker & Docker Compose** (optional, for containerized setup)
+
+## Step-by-step: run locally
+
+### 1. Clone and install dependencies
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+git clone <repository-url>
+cd PLSP-Project
+npm install
 ```
 
-## Run tests
+### 2. Configure environment variables
+
+Copy the example env file and adjust values for your machine:
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
 ```
 
-## Deployment
+Minimum required variables:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+```env
+PORT=8080
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=plsp_user
+DB_PASSWORD=plsp_password
+DB_DATABASE=plsp_db
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+REDIS_HOST=localhost
+REDIS_PORT=6379
+```
+
+### 3. Start MySQL and Redis
+
+**Option A — Docker (recommended)**
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+docker compose up db redis -d
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+This starts:
+- MySQL on port `3306` (database: `plsp_db`, user: `plsp_user`, password: `plsp_password`)
+- Redis on port `6379`
 
-## Resources
+**Option B — local installs**
 
-Check out a few resources that may come in handy when working with NestJS:
+Ensure MySQL and Redis are running on your machine and match the values in `.env`.
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### 4. Run the application
 
-## Support
+**Development (watch mode):**
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+```bash
+npm run start:dev
+```
 
-## Stay in touch
+**Production build:**
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```bash
+npm run build
+npm run start:prod
+```
 
-## License
+### 5. Verify the API
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Resource | URL |
+|----------|-----|
+| API base | http://localhost:8080 |
+| Swagger docs | http://localhost:8080/api-docs |
+
+---
+
+## Step-by-step: run with Docker Compose (full stack)
+
+Runs the NestJS app, MySQL, and Redis together.
+
+### 1. Create `.env`
+
+```bash
+cp .env.example .env
+```
+
+When running inside Docker, point the app at the compose service names:
+
+```env
+PORT=8080
+DB_HOST=db
+DB_PORT=3306
+DB_USERNAME=plsp_user
+DB_PASSWORD=plsp_password
+DB_DATABASE=plsp_db
+
+REDIS_HOST=redis
+REDIS_PORT=6379
+```
+
+### 2. Start all services
+
+```bash
+docker compose up --build
+```
+
+### 3. Access the API
+
+- App: http://localhost:8080
+- Swagger: http://localhost:8080/api-docs
+
+---
+
+## Redis helper
+
+Redis is provided as a global NestJS service in `src/common/redis/redis.ts`.
+
+### Features
+
+- **Connection lifecycle** — connects on startup, closes on shutdown
+- **Graceful degradation** — if Redis is down or disabled, the app continues using MySQL
+- **Read-through cache** — `getOrSet()` loads from DB on cache miss
+- **Centralized keys** — `CacheKeys` keeps naming consistent
+
+### Environment variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `REDIS_ENABLED` | `true` | Set to `false` to disable Redis entirely |
+| `REDIS_HOST` | `localhost` | Redis host |
+| `REDIS_PORT` | `6379` | Redis port |
+| `REDIS_PASSWORD` | — | Optional password |
+| `REDIS_DB` | `0` | Redis database index |
+| `REDIS_TTL` | `3600` | Default cache TTL (seconds) |
+| `REDIS_SESSION_TTL` | `86400` | Submission session key TTL (seconds) |
+| `REDIS_KEY_PREFIX` | `plsp:` | Key prefix for all cache entries |
+
+### Modules using Redis
+
+| Module | Use case |
+|--------|----------|
+| **Submission** | Fast duplicate-session check for anonymous submissions |
+| **Result** | Cache classification rules per category during score calculation |
+| **Question** | Cache questions by questionnaire; invalidate on create/update/delete |
+| **Questionnaire** | Cache status lookup map (draft/open/close) |
+| **Status** | Invalidate status cache on create / update / delete (so questionnaires see fresh statuses) |
+| **Classification** | Invalidate rule cache when rules are created, updated, or deleted |
+
+### Usage in a service
+
+```typescript
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
+
+@Injectable()
+export class ExampleService {
+  constructor(private readonly redis: RedisService) {}
+
+  async getData(id: string) {
+    return this.redis.getOrSet(
+      CacheKeys.questionsByQuestionnaire(id),
+      () => this.repository.find({ where: { id } }),
+    );
+  }
+}
+```
+
+`RedisModule` is registered globally in `app.module.ts`, so you can inject `RedisService` in any module without importing it again.
+
+---
+
+## Available npm scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run start:dev` | Start in watch mode (development) |
+| `npm run start` | Start once |
+| `npm run start:prod` | Run compiled output from `dist/` |
+| `npm run build` | Compile TypeScript to `dist/` |
+| `npm run test` | Run unit tests |
+| `npm run test:e2e` | Run end-to-end tests |
+| `npm run lint` | ESLint with auto-fix |
+| `npm run format` | Prettier formatting |
+
+---
+
+## API modules overview
+
+| Module | Responsibility |
+|--------|----------------|
+| **Questionnaire** | Create and manage questionnaires, open/close scheduling |
+| **Question** | Manage questions linked to questionnaires and categories |
+| **Category** | Learning-style categories |
+| **Classification** | Score-range rules that map results to labels |
+| **Submission** | Anonymous guest submissions with fingerprint-based sessions |
+| **Result** | Score calculation, search, bulk delete, PDF/Excel/CSV export |
+| **Status** | Questionnaire lifecycle statuses (draft, open, closed) |
+| **Employee** | Admin user records |
+| **Audit log** | Cross-cutting audit trail for create/update/delete/export actions |
+
+---
+
+## Documentation
+
+Additional project documentation lives in `/documentation`:
+
+- `PLSP_Project_SRS_Documentation.md` — software requirements
+- `Data Dictionary.md` — database field reference
+- `ER-Diagram.md` — entity relationships
+
+---
+
+## Notes
+
+- TypeORM `synchronize: true` is enabled in development — set to `false` in production and use migrations instead.
+- Authentication is not yet implemented; `getCurrentUser` in `src/common/middleware/curr_user.ts` is a stub.
+- Redis is optional — when unavailable the app gracefully falls back to MySQL queries for all cached data.
+- The Dockerfile uses a **Debian-based** `node:22` image (not Alpine) because the `canvas` native module (used for chart generation in result exports) requires Python and build tools.
+- The `.env.example` file contains the full list of configurable environment variables.

@@ -10,6 +10,7 @@ import { StatusNotFoundException } from 'src/common/exceptions/status.exception'
 import { Employee } from '../employee/entity/employee.entity';
 import { AuditHelper } from '../audit-log/audit-helper.service';
 import { AuditAction, AuditModule } from '../audit-log/entity/audit-log.entity';
+import { CacheKeys, RedisService } from 'src/common/redis/redis';
 
 @Injectable()
 export class StatusService {
@@ -17,6 +18,7 @@ export class StatusService {
     @InjectRepository(Status)
     private readonly statusRepository: Repository<Status>,
     private readonly audit: AuditHelper,
+    private readonly redis: RedisService,
   ) {}
 
   async create(dto: CreateStatusDto, employeeId: number) {
@@ -28,6 +30,7 @@ export class StatusService {
         created_by: { id: created_by || employeeId },
       } as DeepPartial<Status>);
       const saved = await this.statusRepository.save(status as Status);
+      await this.redis.del(CacheKeys.statusMap());
       await this.audit.logSuccess({ ...base, recordId: saved.id, details: { name: saved.name } });
       return plainToInstance(StatusResponseDto, saved);
     } catch (error) {
@@ -65,6 +68,7 @@ export class StatusService {
       const updateData: any = { ...dto };
       if (employeeId) updateData.updated_by = { id: employeeId };
       const saved = await this.statusRepository.save(this.statusRepository.merge(status, updateData));
+      await this.redis.del(CacheKeys.statusMap());
       await this.audit.logSuccess({ ...base, details: { old: previous, new: saved } });
       return plainToInstance(StatusResponseDto, saved);
     } catch (error) {
@@ -83,6 +87,7 @@ export class StatusService {
       status.updated_by = { id: employeeId } as Employee;
       await this.statusRepository.save(status);
       await this.statusRepository.softDelete(id);
+      await this.redis.del(CacheKeys.statusMap());
       await this.audit.logSuccess({ ...base, details: { name: statusName } });
       return { message: 'Status deleted successfully', success: true };
     } catch (error) {

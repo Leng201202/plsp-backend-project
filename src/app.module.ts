@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { typeOrmConfig } from './config/typeorm.config';
+import { RedisModule } from './common/redis/redis.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { QuestionnaireModule } from './modules/questionnaire/questionnaire.module';
@@ -26,6 +27,7 @@ import { Result } from './modules/result/entity/result.entity';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    RedisModule,
     TypeOrmModule.forRoot(typeOrmConfig),
     TypeOrmModule.forFeature([
       Employee,
