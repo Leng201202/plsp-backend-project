@@ -41,8 +41,8 @@ export class QuestionnaireService {
       const questionnaire = this.questionnaireRepository.create({
         ...rest,
         ...(initialStatus && { status: initialStatus }),
-        open_date: open_date,
-        close_date: close_date,
+        open_date: open_date !== undefined ? open_date : null,
+        close_date: close_date !== undefined ? close_date : null,
         created_by: { id: employeeId },
         ...(updated_by && { updated_by: { id: updated_by } }),
       } as DeepPartial<Questionnaire>);
@@ -71,38 +71,29 @@ export class QuestionnaireService {
   }
 
   async findAll() {
-    const [list, statusMap] = await Promise.all([
-      this.questionnaireRepository.find({
-        where: { deleted_at: IsNull() },
-        relations: {
-          status: true,
-          created_by: true,
-          updated_by: true,
-        },
-        order: { created_at: 'DESC' },
-      }),
-      this.getStatusMap(),
-    ]);
-    return plainToInstance(
-      QuestionnaireResponseDto,
-      list.map(q => this.resolveDynamicStatus(q, statusMap)),
-    );
+    const list = await this.questionnaireRepository.find({
+      where: { deleted_at: IsNull() },
+      relations: {
+        status: true,
+        created_by: true,
+        updated_by: true,
+      },
+      order: { created_at: 'DESC' },
+    });
+    return plainToInstance(QuestionnaireResponseDto, list);
   }
 
   async findOne(id: string) {
-    const [questionnaire, statusMap] = await Promise.all([
-      this.questionnaireRepository.findOne({
-        where: { id, deleted_at: IsNull() },
-        relations: {
-          status: true,
-          created_by: true,
-          updated_by: true,
-        },
-      }),
-      this.getStatusMap(),
-    ]);
+    const questionnaire = await this.questionnaireRepository.findOne({
+      where: { id, deleted_at: IsNull() },
+      relations: {
+        status: true,
+        created_by: true,
+        updated_by: true,
+      },
+    });
     if (!questionnaire) throw new QuestionnaireNotFoundException();
-    return plainToInstance(QuestionnaireResponseDto, this.resolveDynamicStatus(questionnaire, statusMap));
+    return plainToInstance(QuestionnaireResponseDto, questionnaire);
   }
 
   async update(id: string, dto: UpdateQuestionnaireDto, employeeId: number) {
@@ -123,14 +114,17 @@ export class QuestionnaireService {
       const updateData: any = { ...rest };
 
       if (status_id) updateData.status = { id: status_id };
-      if (open_date) updateData.open_date = open_date;
-      if (close_date) updateData.close_date = close_date;
+      if (open_date !== undefined) updateData.open_date = open_date;
+      if (close_date !== undefined) updateData.close_date = close_date;
       if (employeeId) updateData.updated_by = { id: employeeId };
 
       const merged = this.questionnaireRepository.merge(questionnaire, updateData);
       
-      // Resolve status dynamically based on dates before saving
-      const resolved = this.resolveDynamicStatus(merged, statusMap);
+      // Only resolve status dynamically if status_id is NOT provided
+      let resolved = merged as Questionnaire;
+      if (!status_id) {
+        resolved = this.resolveDynamicStatus(merged, statusMap);
+      }
       await this.questionnaireRepository.save(resolved);
 
       // Reload with full relations
@@ -267,7 +261,9 @@ export class QuestionnaireService {
     const open = questionnaire.open_date ? new Date(questionnaire.open_date) : null;
     const close = questionnaire.close_date ? new Date(questionnaire.close_date) : null;
 
-    if (open && now < open && statusMap.draft) {
+    if (!open && !close && statusMap.draft) {
+      questionnaire.status = statusMap.draft;
+    } else if (open && now < open && statusMap.draft) {
       questionnaire.status = statusMap.draft;
     } else if (close && now > close && statusMap.close) {
       questionnaire.status = statusMap.close;

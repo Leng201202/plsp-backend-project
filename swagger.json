@@ -726,15 +726,30 @@
             }
           }
         }
-      },
+      }
+    },
+    "/question/by-questionnaire/{questionnaireId}": {
       "get": {
         "tags": ["Question"],
-        "summary": "Get all questions",
-        "description": "Retrieves a list of all questions",
-        "operationId": "questionFindAll",
+        "summary": "Get questions by questionnaire ID",
+        "description": "Retrieves all questions for a given questionnaire",
+        "operationId": "questionFindByQuestionnaire",
+        "parameters": [
+          {
+            "name": "questionnaireId",
+            "in": "path",
+            "required": true,
+            "description": "Questionnaire UUID",
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "550e8400-e29b-41d4-a716-446655440001"
+            }
+          }
+        ],
         "responses": {
           "200": {
-            "description": "List of questions",
+            "description": "List of questions for the questionnaire",
             "content": {
               "application/json": {
                 "example": [
@@ -894,6 +909,7 @@
                 "status_id": "550e8400-e29b-41d4-a716-446655440002",
                 "open_date": "2026-07-01T00:00:00.000Z",
                 "close_date": "2026-07-31T23:59:59.000Z",
+                "is_allow_multi_submit": false,
                 "created_by": 1
               }
             }
@@ -911,6 +927,7 @@
                   "status": "550e8400-e29b-41d4-a716-446655440002",
                   "open_date": "2026-07-01T00:00:00.000Z",
                   "close_date": "2026-07-31T23:59:59.000Z",
+                  "is_allow_multi_submit": false,
                   "created_by": 1,
                   "created_at": "2026-06-01T08:00:00.000Z",
                   "updated_by": null,
@@ -939,6 +956,7 @@
                     "status": "550e8400-e29b-41d4-a716-446655440002",
                     "open_date": "2026-07-01T00:00:00.000Z",
                     "close_date": "2026-07-31T23:59:59.000Z",
+                    "is_allow_multi_submit": false,
                     "created_by": 1,
                     "created_at": "2026-06-01T08:00:00.000Z",
                     "updated_by": 1,
@@ -982,6 +1000,7 @@
                   "status": "550e8400-e29b-41d4-a716-446655440002",
                   "open_date": "2026-07-01T00:00:00.000Z",
                   "close_date": "2026-07-31T23:59:59.000Z",
+                  "is_allow_multi_submit": false,
                   "created_by": 1,
                   "created_at": "2026-06-01T08:00:00.000Z",
                   "updated_by": 1,
@@ -1034,6 +1053,7 @@
                   "status": "550e8400-e29b-41d4-a716-446655440002",
                   "open_date": "2026-07-01T00:00:00.000Z",
                   "close_date": "2026-08-15T23:59:59.000Z",
+                  "is_allow_multi_submit": false,
                   "created_by": 1,
                   "created_at": "2026-06-01T08:00:00.000Z",
                   "updated_by": 1,
@@ -1043,28 +1063,27 @@
             }
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/questionnaire/delete-many": {
+      "post": {
         "tags": ["Questionnaire"],
-        "summary": "Delete a questionnaire",
-        "description": "Deletes a questionnaire by its UUID (soft delete)",
-        "operationId": "questionnaireDelete",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "Questionnaire UUID",
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "550e8400-e29b-41d4-a716-446655440001"
+        "summary": "Delete multiple questionnaires",
+        "description": "Bulk delete questionnaires by IDs",
+        "operationId": "questionnaireDeleteMany",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "example": {
+                "ids": ["550e8400-e29b-41d4-a716-446655440001", "550e8400-e29b-41d4-a716-446655440003"]
+              }
             }
           }
-        ],
+        },
         "responses": {
-          "200": {
-            "description": "The questionnaire has been successfully deleted"
+          "201": {
+            "description": "The questionnaires have been successfully deleted"
           }
         }
       }
