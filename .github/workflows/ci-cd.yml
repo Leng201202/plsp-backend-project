@@ -54,7 +54,7 @@ jobs:
       - name: Deploy to Cloud Run
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: plsp_backend
+          service: backend
           region: ${{ secrets.GCP_REGION }}
           image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPO }}/backend:${{ github.sha }}
           env_vars: |
