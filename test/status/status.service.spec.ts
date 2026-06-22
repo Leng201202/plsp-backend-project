@@ -4,6 +4,7 @@ import { StatusService } from '../../src/modules/status/status.service';
 import { Status } from '../../src/modules/status/entity/status.entity';
 import { StatusNotFoundException } from '../../src/common/exceptions/status.exception';
 import { IsNull } from 'typeorm';
+import { RedisService } from '../../src/common/redis/redis';
 
 describe('StatusService', () => {
   let service: StatusService;
@@ -15,6 +16,14 @@ describe('StatusService', () => {
     findOne: jest.fn(),
     merge: jest.fn(),
     softDelete: jest.fn(),
+  };
+
+  const mockRedisService = {
+    exists: jest.fn(),
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn(),
   };
 
   const statusMock = {
@@ -43,6 +52,10 @@ describe('StatusService', () => {
             logSuccess: jest.fn(),
             logFailure: jest.fn(),
           },
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
         },
       ],
     }).compile();

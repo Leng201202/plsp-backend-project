@@ -4,6 +4,7 @@ import { QuestionService } from '../../src/modules/question/question.service';
 import { Question } from '../../src/modules/question/entity/question.entity';
 import { QuestionNotFoundException } from '../../src/common/exceptions/question.exception';
 import { IsNull } from 'typeorm';
+import { RedisService } from '../../src/common/redis/redis';
 
 describe('QuestionService', () => {
   let service: QuestionService;
@@ -15,6 +16,19 @@ describe('QuestionService', () => {
     findOne: jest.fn(),
     merge: jest.fn(),
     softDelete: jest.fn(),
+  };
+
+  const mockAuditHelper = {
+    logSuccess: jest.fn(),
+    logFailure: jest.fn(),
+  };
+
+  const mockRedisService = {
+    exists: jest.fn(),
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn(),
   };
 
   const questionMock = {
@@ -43,10 +57,11 @@ describe('QuestionService', () => {
         },
         {
           provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
-          useValue: {
-            logSuccess: jest.fn(),
-            logFailure: jest.fn(),
-          },
+          useValue: mockAuditHelper,
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
         },
       ],
     }).compile();
@@ -71,6 +86,8 @@ describe('QuestionService', () => {
 
     mockQuestionRepository.create.mockReturnValue(questionMock);
     mockQuestionRepository.save.mockResolvedValue(questionMock);
+    // create() reloads after save
+    mockQuestionRepository.findOne.mockResolvedValue(questionMock);
 
     const result = await service.create(dto, 1);
 
@@ -81,23 +98,47 @@ describe('QuestionService', () => {
       order_no: dto.order_no,
       is_required: dto.is_required,
       weight: dto.weight,
-      created_by: { id: dto.created_by },
+      created_by: { id: 1 },
     });
     expect(mockQuestionRepository.save).toHaveBeenCalledWith(questionMock);
+    expect(mockQuestionRepository.findOne).toHaveBeenCalled();
+    expect(mockRedisService.del).toHaveBeenCalledWith(expect.any(String));
     expect(result).toMatchObject({
       id: questionMock.id,
       question_text: questionMock.question_text,
     });
   });
 
-  it('should find all questions (excluding soft-deleted)', async () => {
+  it('should throw when create reload fails', async () => {
+    const dto = {
+      questionnaire_id: 'questionnaire-uuid-1',
+      category_id: 'category-uuid-1',
+      question_text: 'Test',
+      created_by: 1,
+    };
+
+    mockQuestionRepository.create.mockReturnValue(questionMock);
+    mockQuestionRepository.save.mockResolvedValue(questionMock);
+    // Reload returns null
+    mockQuestionRepository.findOne.mockResolvedValue(null);
+
+    await expect(service.create(dto as any, 1)).rejects.toThrow(
+      QuestionNotFoundException,
+    );
+
+    expect(mockAuditHelper.logFailure).toHaveBeenCalled();
+  });
+
+  it('should find questions by questionnaire (excluding soft-deleted)', async () => {
+    mockRedisService.getOrSet.mockImplementation(async (key, factory) => factory());
     mockQuestionRepository.find.mockResolvedValue([questionMock]);
 
-    const result = await service.findAll();
+    const result = await service.findByQuestionnaire('questionnaire-uuid-1');
 
     expect(mockQuestionRepository.find).toHaveBeenCalledWith({
       where: {
         deleted_at: IsNull(),
+        questionnaire: { id: 'questionnaire-uuid-1' },
       },
       relations: {
         questionnaire: true,
@@ -105,6 +146,7 @@ describe('QuestionService', () => {
         created_by: true,
         updated_by: true,
       },
+      order: { order_no: 'ASC' },
     });
     expect(result).toMatchObject([{ id: questionMock.id }]);
   });
@@ -141,9 +183,11 @@ describe('QuestionService', () => {
       question_text: 'Updated question text',
     };
 
-    mockQuestionRepository.findOne.mockResolvedValue(questionMock);
+    mockQuestionRepository.findOne.mockResolvedValueOnce(questionMock);
     mockQuestionRepository.merge.mockReturnValue(updatedQuestion);
     mockQuestionRepository.save.mockResolvedValue(updatedQuestion);
+    // update() reloads after save
+    mockQuestionRepository.findOne.mockResolvedValueOnce(updatedQuestion);
 
     const result = await service.update('question-uuid-1', dto, 1);
 
@@ -155,6 +199,7 @@ describe('QuestionService', () => {
       updated_by: { id: 1 },
     });
     expect(mockQuestionRepository.save).toHaveBeenCalledWith(updatedQuestion);
+    expect(mockRedisService.del).toHaveBeenCalledWith(expect.any(String));
     expect(result).toMatchObject({
       id: questionMock.id,
       question_text: 'Updated question text',
@@ -171,16 +216,22 @@ describe('QuestionService', () => {
 
   it('should soft-delete question', async () => {
     mockQuestionRepository.findOne.mockResolvedValue(questionMock);
+    mockQuestionRepository.save.mockResolvedValue(questionMock);
     mockQuestionRepository.softDelete.mockResolvedValue({ affected: 1 });
 
     const result = await service.delete('question-uuid-1', 1);
 
     expect(mockQuestionRepository.findOne).toHaveBeenCalledWith({
       where: { id: 'question-uuid-1', deleted_at: IsNull() },
+      relations: { questionnaire: true },
     });
+    expect(mockQuestionRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({ deleted_by: { id: 1 } }),
+    );
     expect(mockQuestionRepository.softDelete).toHaveBeenCalledWith(
       'question-uuid-1',
     );
+    expect(mockRedisService.del).toHaveBeenCalledWith(expect.any(String));
     expect(result).toEqual({
       message: 'Question deleted successfully',
       success: true,

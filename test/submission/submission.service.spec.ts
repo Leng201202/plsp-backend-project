@@ -12,6 +12,7 @@ import { CreateSubmissionDto, AnswerItemDto } from '../../src/modules/submission
 import { QuestionnaireNotFoundException } from '../../src/common/exceptions/questionnaire.exception';
 import { SubmissionNotFoundException } from '../../src/common/exceptions/submission.exception';
 import { generateSessionID } from '../../src/modules/submission/utils/generateSessionID';
+import { RedisService } from '../../src/common/redis/redis';
 
 describe('SubmissionService', () => {
   let service: SubmissionService;
@@ -45,6 +46,14 @@ describe('SubmissionService', () => {
   const mockAuditHelper = {
     logSuccess: jest.fn().mockResolvedValue(undefined),
     logFailure: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockRedisService = {
+    exists: jest.fn(),
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn(),
   };
 
   const mockQuestionnaireId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
@@ -145,6 +154,10 @@ describe('SubmissionService', () => {
           provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
           useValue: mockAuditHelper,
         },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
       ],
     }).compile();
 
@@ -156,6 +169,7 @@ describe('SubmissionService', () => {
   });
 
   it('should create submission successfully', async () => {
+    mockRedisService.exists.mockResolvedValue(false);
     mockQuestionnaireRepository.findOneBy.mockResolvedValue(mockQuestionnaire);
     mockSubmissionRepository.findOne.mockResolvedValue(null);
 
@@ -173,6 +187,7 @@ describe('SubmissionService', () => {
 
     const result = await service.create(mockCreateSubmissionDto, mockUserAgent);
 
+    expect(mockRedisService.exists).toHaveBeenCalledWith(expect.any(String));
     expect(mockQuestionnaireRepository.findOneBy).toHaveBeenCalledWith({
       id: mockQuestionnaireId,
     });
@@ -182,6 +197,11 @@ describe('SubmissionService', () => {
         anonymousSessionId: mockSessionId,
       },
     });
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      expect.any(String),
+      mockSubmissionId,
+      expect.any(Number),
+    );
     expect(mockDataSource.transaction).toHaveBeenCalledTimes(1);
     expect(mockAnswerService.saveAnswers).toHaveBeenCalledWith(
       expect.any(Object),
@@ -213,6 +233,7 @@ describe('SubmissionService', () => {
   });
 
   it('should throw QuestionnaireNotFoundException when questionnaire does not exist', async () => {
+    mockRedisService.exists.mockResolvedValue(false);
     mockQuestionnaireRepository.findOneBy.mockResolvedValue(null);
 
     await expect(
@@ -222,11 +243,13 @@ describe('SubmissionService', () => {
     expect(mockQuestionnaireRepository.findOneBy).toHaveBeenCalledWith({
       id: mockQuestionnaireId,
     });
+    expect(mockRedisService.exists).not.toHaveBeenCalled();
     expect(mockDataSource.transaction).not.toHaveBeenCalled();
     expect(mockAuditHelper.logFailure).toHaveBeenCalledTimes(1);
   });
 
   it('should throw BadRequestException when duplicate submission exists', async () => {
+    mockRedisService.exists.mockResolvedValue(false);
     mockQuestionnaireRepository.findOneBy.mockResolvedValue(mockQuestionnaire);
     mockSubmissionRepository.findOne.mockResolvedValue(mockSubmission);
 
@@ -234,6 +257,12 @@ describe('SubmissionService', () => {
       service.create(mockCreateSubmissionDto, mockUserAgent),
     ).rejects.toThrow('Submission already exists for this session and questionnaire');
 
+    expect(mockRedisService.exists).toHaveBeenCalledWith(expect.any(String));
+    expect(mockRedisService.set).toHaveBeenCalledWith(
+      expect.any(String),
+      mockSubmissionId,
+      expect.any(Number),
+    );
     expect(mockQuestionnaireRepository.findOneBy).toHaveBeenCalledWith({
       id: mockQuestionnaireId,
     });
@@ -248,6 +277,7 @@ describe('SubmissionService', () => {
   });
 
   it('should log audit failure and rethrow when transaction fails', async () => {
+    mockRedisService.exists.mockResolvedValue(false);
     mockQuestionnaireRepository.findOneBy.mockResolvedValue(mockQuestionnaire);
     mockSubmissionRepository.findOne.mockResolvedValue(null);
     const dbError = new Error('Database connection lost');
@@ -257,6 +287,7 @@ describe('SubmissionService', () => {
       service.create(mockCreateSubmissionDto, mockUserAgent),
     ).rejects.toThrow(dbError);
 
+    expect(mockRedisService.exists).toHaveBeenCalledWith(expect.any(String));
     expect(mockAuditHelper.logFailure).toHaveBeenCalledWith(
       {
         employeeId: 0,

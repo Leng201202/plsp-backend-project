@@ -1,0 +1,80 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+      - uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '22'
+      
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the project
+        run: npm run build
+
+      - name: Run tests
+        run: npm test
+
+      - name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      
+      # - name: Create Artifact Repository 
+      #   run: |
+      #     gcloud artifacts repositories create ${{secrets.GCP_GAR_REPO}} \
+      #       --repository-format=docker \
+      #       --location=${{secrets.GCP_REGION}} \
+      #       --description="Docker repository for backend service" || echo "Repository already exists"
+      #       --tags=backend-v1.0.0
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{secrets.GCP_REGION}}-docker.pkg.dev
+      
+      - name: Build Docker Image
+        run: |
+          docker build -t ${{secrets.GCP_REGION}}-docker.pkg.dev/${{secrets.GCP_PROJECT_ID}}/${{secrets.GCP_GAR_REPO}}/backend:${{ github.sha }} -f Dockerfile.prod .
+
+      - name: Push Docker Image to Cloud Run
+        run: |
+          docker push ${{secrets.GCP_REGION}}-docker.pkg.dev/${{secrets.GCP_PROJECT_ID}}/${{secrets.GCP_GAR_REPO}}/backend:${{ github.sha }}
+      
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: plsp_backend
+          region: ${{secrets.GCP_REGION}}
+          image: ${{secrets.GCP_REGION}}-docker.pkg.dev/${{secrets.GCP_PROJECT_ID}}/${{secrets.GCP_GAR_REPO}}/backend:${{ github.sha }}
+          env_vars: |
+            DB_SOCKET_PATH=/cloudsql/${{secrets.GCP_SQL_CONNECTION_NAME}}
+            DB_USERNAME=${{secrets.DB_USERNAME}}
+            DB_PASSWORD=${{secrets.DB_PASSWORD}}
+            DB_DATABASE_NAME=${{secrets.DB_DATABASE_NAME}}
+          flags: |
+            --allow-unauthenticated
+            --port=8080
+            --add-cloudsql-instances=${{secrets.GCP_SQL_CONNECTION_NAME}}

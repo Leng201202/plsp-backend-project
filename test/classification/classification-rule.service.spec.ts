@@ -6,6 +6,7 @@ import { ClassificationRuleService } from '../../src/modules/classification/clas
 import { ClassificationRule } from '../../src/modules/classification/entity/classification-rule.entity';
 import { AuditHelper } from '../../src/modules/audit-log/audit-helper.service';
 import { ClassificationRuleNotFoundException, ClassificationScoreOutOfRangeException, ClassificationScoreOverlapException } from '../../src/common/exceptions/classification.exception';
+import { RedisService } from '../../src/common/redis/redis';
 
 describe('ClassificationRuleService', () => {
   let service: ClassificationRuleService;
@@ -21,6 +22,14 @@ describe('ClassificationRuleService', () => {
   const mockAuditHelper = {
     logSuccess: jest.fn(),
     logFailure: jest.fn(),
+  };
+
+  const mockRedisService = {
+    exists: jest.fn(),
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn(),
   };
 
   const mockRuleId =
@@ -42,6 +51,10 @@ describe('ClassificationRuleService', () => {
         {
           provide: AuditHelper,
           useValue: mockAuditHelper,
+        },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
         },
       ],
     }).compile();

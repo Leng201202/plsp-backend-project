@@ -83,7 +83,7 @@ describe('ResultController', () => {
       );
 
       expect(mockResultService.deleteMany)
-        .toHaveBeenCalledWith(dto);
+        .toHaveBeenCalledWith(dto, 1);
 
       expect(result).toEqual(response);
     });

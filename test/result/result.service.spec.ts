@@ -10,6 +10,7 @@ import { AnswerNotFoundException } from '../../src/common/exceptions/answer.exce
 import { In } from 'typeorm';
 import { ResultSelectionMode } from '../../src/modules/result/dto/result-bulk-action.dto';
 import { ResultExportMode } from '../../src/modules/result/dto/result-export.dto';
+import { RedisService } from '../../src/common/redis/redis';
 
 describe('ResultService', () => {
   let service: ResultService;
@@ -38,12 +39,27 @@ describe('ResultService', () => {
 
   const mockClassificationRuleRepository = {
     findOne: jest.fn(),
+    find: jest.fn(),
   };
 
   const mockAuditHelper = {
     logSuccess: jest.fn().mockResolvedValue(undefined),
     logFailure: jest.fn().mockResolvedValue(undefined),
   };
+
+  const mockRedisService = {
+    exists: jest.fn(),
+    set: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn(),
+    del: jest.fn().mockResolvedValue(undefined),
+    getOrSet: jest.fn(),
+  };
+
+  const mockClassificationRules = [
+    { id: 'rule1', label: 'Medium', min_score: 10, max_score: 30, is_active: true },
+    { id: 'rule2', label: 'High', min_score: 31, max_score: 50, is_active: true },
+    { id: 'rule3', label: 'Low', min_score: 0, max_score: 9, is_active: true },
+  ];
 
   const mockSubmissionId = 'f1e2d3c4-b5a6-7890-abcd-ef1234567890';
   const mockCategoryId1 = 'c1';
@@ -151,6 +167,10 @@ describe('ResultService', () => {
           provide: require('../../src/modules/audit-log/audit-helper.service').AuditHelper,
           useValue: mockAuditHelper,
         },
+        {
+          provide: RedisService,
+          useValue: mockRedisService,
+        },
       ],
     }).compile();
 
@@ -165,7 +185,8 @@ describe('ResultService', () => {
     it('should calculate results for a submission successfully', async () => {
       mockSubmissionRepository.findOne.mockResolvedValue(mockSubmission);
       mockAnswerRepository.find.mockResolvedValue(mockAnswers);
-      mockClassificationRuleRepository.findOne.mockResolvedValue(mockClassificationRule);
+      mockRedisService.getOrSet.mockImplementation(async (key, factory) => factory());
+      mockClassificationRuleRepository.find.mockResolvedValue(mockClassificationRules);
       mockResultRepository.create
         .mockReturnValueOnce(mockCreatedResult1)
         .mockReturnValueOnce(mockCreatedResult2);
@@ -180,7 +201,7 @@ describe('ResultService', () => {
         where: { submission: { id: mockSubmissionId } },
         relations: { question: { category: true } },
       });
-      expect(mockClassificationRuleRepository.findOne).toHaveBeenCalledTimes(2);
+      expect(mockClassificationRuleRepository.find).toHaveBeenCalledTimes(2);
       expect(mockResultRepository.create).toHaveBeenCalledTimes(2);
       expect(mockResultRepository.save).toHaveBeenCalledWith(mockSavedResults);
       expect(results).toEqual(mockSavedResults);

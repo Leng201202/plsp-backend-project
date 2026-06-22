@@ -7,7 +7,7 @@ describe('QuestionController', () => {
 
   const mockQuestionService = {
     create: jest.fn(),
-    findAll: jest.fn(),
+    findByQuestionnaire: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -45,11 +45,11 @@ describe('QuestionController', () => {
     expect(mockQuestionService.create).toHaveBeenCalledWith(dto, 1);
   });
 
-  it('should find all questions', async () => {
-    mockQuestionService.findAll.mockResolvedValue([]);
+  it('should find questions by questionnaire', async () => {
+    mockQuestionService.findByQuestionnaire.mockResolvedValue([]);
 
-    expect(await controller.findAll()).toEqual([]);
-    expect(mockQuestionService.findAll).toHaveBeenCalled();
+    expect(await controller.findByQuestionnaire('q-1')).toEqual([]);
+    expect(mockQuestionService.findByQuestionnaire).toHaveBeenCalledWith('q-1');
   });
 
   it('should find one question', async () => {

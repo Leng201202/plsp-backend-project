@@ -10,7 +10,7 @@ describe('QuestionnaireController', () => {
     findAll: jest.fn(),
     findOne: jest.fn(),
     update: jest.fn(),
-    delete: jest.fn(),
+    deleteMany: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -65,14 +65,16 @@ describe('QuestionnaireController', () => {
     expect(mockQuestionnaireService.update).toHaveBeenCalledWith('uuid-1', dto, 1);
   });
 
-  it('should remove questionnaire', async () => {
+  it('should delete many questionnaires', async () => {
+    const dto: any = { mode: 'selected', questionnaireIds: ['uuid-1'] };
     const response = {
       success: true,
-      message: 'Questionnaire deleted successfully',
+      message: 'Questionnaires deleted successfully.',
+      deletedCount: 1,
     };
-    mockQuestionnaireService.delete.mockResolvedValue(response);
+    mockQuestionnaireService.deleteMany.mockResolvedValue(response);
 
-    expect(await controller.delete('uuid-1')).toEqual(response);
-    expect(mockQuestionnaireService.delete).toHaveBeenCalledWith('uuid-1', 1);
+    expect(await controller.deleteMany(dto)).toEqual(response);
+    expect(mockQuestionnaireService.deleteMany).toHaveBeenCalledWith(dto, 1);
   });
 });
