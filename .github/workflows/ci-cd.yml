@@ -52,17 +52,31 @@ jobs:
           docker push ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPO }}/backend:${{ github.sha }}
 
       - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: backend
-          region: ${{ secrets.GCP_REGION }}
-          image: ${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPO }}/backend:${{ github.sha }}
-          env_vars: |
-            DB_SOCKET_PATH=/cloudsql/${{ secrets.GCP_SQL_CONNECTION_NAME }}
-            DB_USERNAME=${{ secrets.DB_USERNAME }}
-            DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-            DB_DATABASE_NAME=${{ secrets.DB_DATABASE_NAME }}
-          flags: |
-            --allow-unauthenticated
-            --port=8080
-            --add-cloudsql-instances=${{ secrets.GCP_SQL_CONNECTION_NAME }}
+        run: |
+          IMAGE="${{ secrets.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ secrets.GCP_GAR_REPO }}/backend:${{ github.sha }}"
+          REGION="${{ secrets.GCP_REGION }}"
+          SQL_CONNECTION="${{ secrets.GCP_SQL_CONNECTION_NAME }}"
+
+          # Build env vars — include all DB connection values
+          ENV_VARS=""
+          if [ -n "$SQL_CONNECTION" ]; then
+            ENV_VARS="DB_SOCKET_PATH=/cloudsql/$SQL_CONNECTION"
+          else
+            ENV_VARS="DB_HOST=${{ secrets.DB_HOST }},DB_PORT=${{ secrets.DB_PORT }}"
+          fi
+          ENV_VARS="${ENV_VARS},DB_USERNAME=${{ secrets.DB_USERNAME }}"
+          ENV_VARS="${ENV_VARS},DB_PASSWORD=${{ secrets.DB_PASSWORD }}"
+          ENV_VARS="${ENV_VARS},DB_DATABASE_NAME=${{ secrets.DB_DATABASE_NAME }}"
+
+          # Build gcloud deploy command
+          CMD="gcloud run deploy backend --image $IMAGE --region $REGION --allow-unauthenticated --port 8080"
+          CMD="$CMD --update-env-vars ^,^$ENV_VARS"
+          CMD="$CMD --update-labels ^,^managed-by=github-actions,commit-sha=${{ github.sha }}"
+
+          # Conditionally add Cloud SQL
+          if [ -n "$SQL_CONNECTION" ]; then
+            CMD="$CMD --add-cloudsql-instances=$SQL_CONNECTION"
+          fi
+
+          echo "Running: $CMD"
+          eval "$CMD"
